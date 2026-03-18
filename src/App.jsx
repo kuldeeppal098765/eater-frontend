@@ -86,11 +86,7 @@ function App() {
     fetchOrders();
   };
 
-  const printBill = (order, index) => {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<html><head><style>body{font-family:'Courier New',monospace;text-align:center;padding:20px}.bill{border:1px dashed #000;padding:15px;width:260px;margin:auto}.line{border-top:1px dashed #000;margin:10px 0}</style></head><body><div class="bill"><h2>${loggedInVendor.name} 🏪</h2><p>Order #${orders.length - index} | ${new Date(order.createdAt).toLocaleDateString()}</p><div class="line"></div><p style="text-align:left"><strong>Cust:</strong> ${order.user?.name || 'Guest'}<br><strong>Phone:</strong> ${order.user?.phone || 'N/A'}</p><div class="line"></div><p style="text-align:left">Food Items</p><h3 style="margin:10px 0">Total: ₹${order.totalAmount}</h3><div class="line"></div><p>धन्यवाद! 🙏</p></div><script>setTimeout(()=>{window.print();window.close();},500);</script></body></html>`);
-    printWindow.document.close();
-  };
+  
 
   const placeCartOrder = async () => {
     if (cart.length === 0 || !custInfo.name || !custInfo.phone) return alert("कृपया कार्ट में आइटम जोड़ें और नाम/नंबर दर्ज करें!");
@@ -229,31 +225,40 @@ function App() {
               <div className="admin-menu-list">
                 {vendorOrders.slice().reverse().map((order, index) => (
                   <div key={order.id} className="admin-menu-item" style={{background: order.status==='DELIVERED'?'#f8fafc': order.status==='REJECTED'?'#fef2f2' :'#f0fdf4', display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'12px', border: order.status==='DELIVERED'?'1px solid #e2e8f0': order.status==='REJECTED'?'1px solid #fecaca' :'1px solid #bbf7d0'}}>
-                    <div>
+                    
+                    <div style={{flex: 1}}>
                       <div style={{fontSize: '18px'}}>🛒 <strong>Order #{vendorOrders.length - index}</strong> - <span style={{color: '#ea580c', fontWeight: 'bold'}}>₹{order.totalAmount}</span></div>
                       <div style={{fontSize: '14px', color: '#64748b', marginTop: '5px'}}>👤 {order.user?.name || 'Guest'} | 📱 {order.user?.phone || 'N/A'}</div>
                       <div style={{marginTop: '5px', color: order.status==='PENDING'?'#ea580c': order.status==='ACCEPTED'?'#eab308':'#64748b'}}><strong>Status:</strong> {order.status}</div>
+                      
+                      {/* 🍲 यहाँ हमने आर्डर किये गए आइटम्स की लिस्ट जोड़ दी है */}
+                      <div style={{marginTop: '12px', padding: '10px', background: 'white', borderRadius: '6px', border: '1px dashed #cbd5e1', display: 'inline-block', minWidth: '220px'}}>
+                        <p style={{margin: '0 0 5px 0', fontSize: '13px', fontWeight: 'bold', color: '#475569'}}>Items to prepare:</p>
+                        {order.items && order.items.length > 0 ? order.items.map((it, i) => (
+                          <div key={i} style={{fontSize: '13px', color: '#334155', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '3px 0'}}>
+                            <span>• {it.menuItem?.name || 'Food Item'} x{it.quantity || 1}</span>
+                            <span>₹{it.priceAtOrder || 0}</span>
+                          </div>
+                        )) : <div style={{fontSize: '13px', color: '#ef4444'}}>No items found</div>}
+                      </div>
                     </div>
                     
-                    <div style={{display:'flex', gap:'10px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                    <div style={{display:'flex', gap:'10px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
                       <button onClick={() => printBill(order, index)} style={{background:'#3b82f6', color:'white', border:'none', padding:'8px 15px', borderRadius:'6px', cursor: 'pointer'}}>Print 🖨️</button>
                       
-                      {/* नए आर्डर के लिए Accept/Reject */}
                       {order.status === 'PENDING' && (
                         <>
                           <button onClick={() => updateOrderStatus(order.id, 'ACCEPTED')} style={{background:'#eab308', color:'white', border:'none', padding:'8px 15px', borderRadius:'6px', cursor: 'pointer'}}>Accept ✅</button>
                           <button onClick={() => updateOrderStatus(order.id, 'REJECTED')} style={{background:'#ef4444', color:'white', border:'none', padding:'8px 15px', borderRadius:'6px', cursor: 'pointer'}}>Reject ❌</button>
                         </>
                       )}
-
-                      {/* जो आर्डर Accept हो गया, उसे डिलीवर करें */}
                       {order.status === 'ACCEPTED' && (
                         <button onClick={() => updateOrderStatus(order.id, 'DELIVERED')} style={{background:'#16a34a', color:'white', border:'none', padding:'8px 15px', borderRadius:'6px', cursor: 'pointer'}}>Mark Delivered 🛵</button>
                       )}
-
                       {order.status === 'DELIVERED' && <span style={{color: '#16a34a', fontWeight: 'bold', padding: '0 10px'}}>DELIVERED ✅</span>}
                       {order.status === 'REJECTED' && <span style={{color: '#ef4444', fontWeight: 'bold', padding: '0 10px'}}>REJECTED ❌</span>}
                     </div>
+
                   </div>
                 ))}
                 {vendorOrders.length === 0 && <p style={{color: '#64748b', textAlign: 'center', padding: '20px'}}>No orders yet.</p>}
