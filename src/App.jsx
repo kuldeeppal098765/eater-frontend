@@ -77,9 +77,9 @@ function App() {
     printWindow.document.close();
   };
 
-  const placeCartOrder = async () => {
+ const placeCartOrder = async () => {
     if (cart.length === 0 || !custInfo.name || !custInfo.phone) {
-      alert("कृपया अपना नाम और फोन नंबर दर्ज करें! 📝");
+      alert("कृपया नाम और फोन नंबर दर्ज करें! 📝");
       return;
     }
     const totalAmount = cart.reduce((acc, item) => acc + Number(item.price), 0);
@@ -90,8 +90,27 @@ function App() {
       totalAmount, 
       items: cart.map(item => ({ menuItemId: item.id, quantity: 1, price: Number(item.price) })) 
     };
-    const res = await fetch('https://eater-backend.onrender.com/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
-    if (res.ok) { alert(`🎉 ऑर्डर प्लेस हो गया!`); setCart([]); setCustInfo({name:'', phone:''}); fetchOrders(); setView('home'); }
+
+    try {
+      const res = await fetch('https://eater-backend.onrender.com/api/orders', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(orderData) 
+      });
+
+      if (res.ok) { 
+        alert(`🎉 ऑर्डर प्लेस हो गया!`); 
+        setCart([]); 
+        setCustInfo({name:'', phone:''}); 
+        fetchOrders(); 
+        setView('home'); 
+      } else {
+        const errorData = await res.json();
+        alert("❌ ऑर्डर फेल हो गया: " + (errorData.error || "सर्वर एरर"));
+      }
+    } catch (err) {
+      alert("🌐 नेटवर्क की समस्या: बैकएंड सर्वर अभी सो रहा है या कनेक्ट नहीं हो पा रहा।");
+    }
   };
 
   const todaySales = orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((acc, o) => acc + Number(o.totalAmount), 0);
