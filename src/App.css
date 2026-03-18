@@ -1,70 +1,253 @@
-/* Global Styles */
-body { margin: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f5; color: #1c1c1c; }
-.app-container { min-height: 100vh; }
+/* 🌟 Google Font Import (Premium Look) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
-/* 📱 Top Navigation */
-.national-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 5%; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-.nav-left { display: flex; align-items: center; gap: 30px; }
-.logo-text { color: #fc8019; font-size: 2rem; font-weight: 900; margin: 0; cursor: pointer; letter-spacing: -1px; }
-.location-box { display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.pin-icon { font-size: 1.5rem; }
-.loc-title { font-weight: bold; margin: 0; font-size: 0.9rem; border-bottom: 2px solid #333; display: inline-block; }
-.loc-desc { margin: 0; font-size: 0.8rem; color: #686b78; }
+/* --- Global Styles --- */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f8fafc; /* हल्का ग्रे बैकग्राउंड */
+  color: #1e293b;
+}
 
-.nav-right { display: flex; align-items: center; gap: 25px; }
-.nav-btn { background: none; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; color: #3d4152; }
-.nav-btn:hover { color: #fc8019; }
-.cart-icon { font-size: 1.5rem; cursor: pointer; position: relative; }
-.cart-icon span { position: absolute; top: -5px; right: -10px; background: #fc8019; color: white; font-size: 0.8rem; font-weight: bold; padding: 2px 6px; border-radius: 50%; }
-.user-profile { font-weight: bold; color: #3d4152; }
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-/* 🏡 Home Content */
-.home-content { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+/* --- 🍔 Navigation Bar (Modern) --- */
+.national-nav {
+  background: white;
+  padding: 15px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
 
-/* Search Bar */
-.search-container { margin-bottom: 40px; }
-.search-bar { width: 100%; padding: 15px 20px; font-size: 1.1rem; border: 1px solid #d4d5d9; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); box-sizing: border-box; outline: none; transition: 0.3s; }
-.search-bar:focus { border-color: #fc8019; box-shadow: 0 4px 15px rgba(252, 128, 25, 0.2); }
+.logo-text {
+  color: #ea580c; /* Zomato/Swiggy Style Orange */
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -1px;
+}
 
-/* Categories */
-.category-section h2 { font-size: 1.5rem; color: #3d4152; margin-bottom: 20px; }
-.category-scroll { display: flex; gap: 30px; overflow-x: auto; padding-bottom: 10px; }
-.category-scroll::-webkit-scrollbar { display: none; }
-.category-bubble { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 80px; }
-.cat-icon { font-size: 2.5rem; background: white; padding: 20px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.3s; }
-.category-bubble:hover .cat-icon { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
-.category-bubble p { margin-top: 10px; font-weight: 600; color: #3d4152; }
+.nav-right {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
 
-/* Restaurants Grid */
-.restaurants-section { margin-top: 50px; }
-.restaurants-section h2 { font-size: 1.5rem; color: #3d4152; margin-bottom: 20px; }
-.restaurant-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+.nav-btn {
+  background: transparent;
+  border: 2px solid #ea580c;
+  color: #ea580c;
+  padding: 8px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
 
-.rest-card { background: white; border-radius: 16px; overflow: hidden; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-.rest-card:hover { border-color: #e9e9eb; box-shadow: 0 10px 25px rgba(0,0,0,0.08); transform: scale(0.98); }
-.rest-image-placeholder { height: 160px; background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); display: flex; justify-content: center; align-items: center; position: relative; }
-.rest-huge-emoji { font-size: 5rem; }
-.offer-tag { position: absolute; bottom: 0; left: 0; background: #3a5af0; color: white; padding: 4px 10px; font-size: 0.8rem; font-weight: bold; border-top-right-radius: 8px; }
+.nav-btn:hover {
+  background: #ea580c;
+  color: white;
+}
 
-.rest-info { padding: 15px; }
-.rest-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; color: #282c3f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rest-meta { display: flex; gap: 10px; font-size: 0.9rem; font-weight: bold; color: #3d4152; margin-bottom: 5px; }
-.rating { background: #267e3e; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
-.tags { margin: 0; font-size: 0.85rem; color: #686b78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.location { margin: 5px 0 0 0; font-size: 0.85rem; color: #93959f; }
+.cart-icon {
+  font-size: 24px;
+  cursor: pointer;
+  position: relative;
+}
 
-/* Utility / Back Buttons */
-.back-btn { background: #3d4152; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 20px; font-weight: bold; }
-.main-container { max-width: 1200px; margin: 0 auto; padding: 30px 20px; }
+.cart-icon span {
+  background: #ea580c;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 50%;
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  font-weight: bold;
+}
 
-/* ... (बाकी आपका पुराना Cart और Admin वाला CSS यहाँ नीचे लगा दें जो हमने पहले बनाया था) ... */
-.customer-layout { display: flex; gap: 30px; align-items: flex-start; }
-.menu-grid { flex: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-.menu-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-.add-btn { background: #fc8019; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold;}
-.cafe-header { background: #282c3f; color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; text-align: center;}
-.cart-sidebar { flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: sticky; top: 80px; }
-.checkout-btn { background: #60b246; color: white; border: none; padding: 12px 20px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;}
-.stats-grid { display: flex; gap: 20px; margin-bottom: 20px;}
-.stat-card { background: white; padding: 20px; border-radius: 12px; min-width: 150px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 5px solid #3a5af0; }
-.login-form-container { background: white; max-width: 400px; margin: 50px auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #fc8019; }
+/* --- 🍕 Hero Banner --- */
+.hero-banner {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  padding: 50px 20px;
+  text-align: center;
+  border-radius: 16px;
+  margin: 20px 5%;
+  box-shadow: 0 10px 25px rgba(234, 88, 12, 0.3);
+}
+
+.hero-banner h2 {
+  font-size: 2.5rem;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+/* --- 🍽️ Cards (Restaurant & Menu) --- */
+.restaurant-grid, .menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  padding: 20px 5%;
+}
+
+.rest-card, .menu-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid #f1f5f9;
+}
+
+.rest-card:hover, .menu-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-color: #fdba74;
+}
+
+.rest-huge-emoji {
+  font-size: 60px;
+  display: block;
+  margin-bottom: 15px;
+}
+
+.menu-card h3 {
+  margin: 10px 0 5px;
+  font-size: 1.2rem;
+}
+
+.menu-card p {
+  color: #16a34a;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 15px;
+}
+
+.add-btn {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 100%;
+}
+
+.add-btn:hover {
+  background: #15803d;
+  transform: scale(1.05);
+}
+
+/* --- 🛒 Customer Layout & Sidebar --- */
+.customer-layout {
+  display: flex;
+  gap: 30px;
+  padding: 0 5%;
+}
+
+.menu-grid {
+  flex: 2;
+  padding: 0;
+}
+
+.cart-sidebar {
+  flex: 1;
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.cart-sidebar input {
+  width: 90%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.checkout-btn {
+  background: #ea580c;
+  color: white;
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: 0.3s;
+}
+
+.checkout-btn:hover {
+  background: #c2410c;
+  box-shadow: 0 5px 15px rgba(234, 88, 12, 0.4);
+}
+
+/* --- 👨‍💼 Admin Dashboard --- */
+.main-container {
+  padding: 20px 5%;
+}
+
+.back-btn {
+  background: #cbd5e1;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.summary-cards .card {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  transition: 0.3s;
+}
+.summary-cards .card:hover {
+  transform: translateY(-5px);
+}
+
+.admin-menu-item {
+  border-radius: 12px;
+  transition: 0.3s;
+  border: 1px solid transparent;
+}
+.admin-menu-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* 📱 Mobile Responsive */
+@media (max-width: 768px) {
+  .customer-layout {
+    flex-direction: column-reverse;
+  }
+  .cart-sidebar {
+    position: static;
+    margin-bottom: 30px;
+  }
+  .summary-cards {
+    flex-direction: column;
+  }
+}
