@@ -12,12 +12,10 @@ function App() {
   const [custInfo, setCustInfo] = useState({ name: '', phone: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', fssai: '', ownerName: '', phone: '' });
 
-  // 🌟 रेस्टोरेंट की लिस्ट 
+  // 🌟 रेस्टोरेंट और लॉगिन State
   const [restaurantsList, setRestaurantsList] = useState([]);
   const [activeRestId, setActiveRestId] = useState("");
   const [activeRestName, setActiveRestName] = useState("");
-
-  // 🔑 वेंडर लॉगिन के लिए
   const [vendorLoginId, setVendorLoginId] = useState('');
   const [loggedInVendor, setLoggedInVendor] = useState(null);
 
@@ -45,17 +43,14 @@ function App() {
     });
   };
 
-  // 🔐 वेंडर लॉगिन फंक्शन
   const handleVendorLogin = (e) => {
     e.preventDefault();
-    // 'mahiku123' पासवॉर्ड से पुराना महिकू कैफे खुलेगा (Admin Bypass)
     if(vendorLoginId === 'mahiku123') {
        setLoggedInVendor({ id: "cd92a6d1-2335-4f5e-9007-ffda681045a1", name: "Mahiku Cafe" });
        setIsAdminLoggedIn(true);
        fetchMenu("cd92a6d1-2335-4f5e-9007-ffda681045a1");
        return;
     }
-
     const found = restaurantsList.find(r => r.id === vendorLoginId.trim());
     if (found) {
       setLoggedInVendor(found);
@@ -66,27 +61,62 @@ function App() {
     }
   };
 
-  // 🍲 मेन्यू मैनेजमेंट (Add & Delete)
   const handleAddItem = async (e) => {
     e.preventDefault();
-    const res = await fetch('https://eater-backend.onrender.com/api/menu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...newItem, restaurantId: loggedInVendor.id, price: Number(newItem.price), category: "Fast Food", isVeg: true }) });
+    const res = await fetch('https://eater-backend.onrender.com/api/menu', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...newItem, restaurantId: loggedInVendor.id, price: Number(newItem.price), category: "Food", isVeg: true }) });
     if (res.ok) { alert("✅ आइटम जुड़ गया!"); setNewItem({ name: '', price: '', description: '' }); fetchMenu(loggedInVendor.id); }
   };
 
   const deleteItem = async (itemId) => {
-    if(window.confirm("क्या आप सच में इस आइटम को मेन्यू से हटाना चाहते हैं?")) {
+    if(window.confirm("क्या आप सच में इस आइटम को हटाना चाहते हैं?")) {
       await fetch(`https://eater-backend.onrender.com/api/menu/${itemId}`, { method: 'DELETE' });
       fetchMenu(loggedInVendor.id);
     }
   };
 
-  // 📦 आर्डर मैनेजमेंट (Accept / Reject / Deliver)
   const updateOrderStatus = async (orderId, newStatus) => {
     await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, status: newStatus }) });
     fetchOrders();
   };
 
-  
+  // 🖨️ एकदम सही जगह पर रखा गया स्मार्ट प्रिंट फंक्शन
+  const printBill = (order, index) => {
+    let itemsListHTML = '';
+    if (order.items && order.items.length > 0) {
+      order.items.forEach(item => {
+        let itemName = item.menuItem?.name || 'Dish'; 
+        let itemPrice = item.priceAtOrder || item.price || 0;
+        itemsListHTML += `<div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px;"><span>${itemName} x${item.quantity || 1}</span><span>₹${itemPrice}</span></div>`;
+      });
+    } else {
+      itemsListHTML = `<p style="text-align:left; font-size:14px;">Food Items</p>`;
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <style>body{font-family:'Courier New',monospace;text-align:center;padding:20px}.bill{border:1px dashed #000;padding:15px;width:260px;margin:auto}.line{border-top:1px dashed #000;margin:10px 0}</style>
+        </head>
+        <body>
+          <div class="bill">
+            <h2>${loggedInVendor?.name || 'Restaurant'} 🏪</h2>
+            <p style="font-size:12px;">Order #${orders.length - index} | ${new Date(order.createdAt).toLocaleDateString()}</p>
+            <div class="line"></div>
+            <p style="text-align:left; font-size:14px; margin:5px 0;"><strong>Cust:</strong> ${order.user?.name || 'Guest'}<br><strong>Phone:</strong> ${order.user?.phone || 'N/A'}</p>
+            <div class="line"></div>
+            <div style="margin: 15px 0;">${itemsListHTML}</div>
+            <div class="line"></div>
+            <h3 style="margin:10px 0; display:flex; justify-content:space-between;"><span>Total:</span><span>₹${order.totalAmount}</span></h3>
+            <div class="line"></div>
+            <p style="font-size:14px;">धन्यवाद! 🙏</p>
+          </div>
+          <script>setTimeout(()=>{window.print();window.close();},500);</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const placeCartOrder = async () => {
     if (cart.length === 0 || !custInfo.name || !custInfo.phone) return alert("कृपया कार्ट में आइटम जोड़ें और नाम/नंबर दर्ज करें!");
@@ -104,14 +134,13 @@ function App() {
       const res = await fetch('https://eater-backend.onrender.com/api/restaurants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: vendorForm.name, ownerName: vendorForm.ownerName, phone: vendorForm.phone, fssai: vendorForm.fssai }) });
       if (res.ok) {
         const data = await res.json();
-        alert(`🎉 बधाई हो!\n'${vendorForm.name}' रजिस्टर हो गया है।\nलॉगिन के लिए आपका Restaurant ID है:\n\n${data.data.id}\n\n(इसे कॉपी करके सुरक्षित रख लें)`);
+        alert(`🎉 बधाई हो!\n'${vendorForm.name}' रजिस्टर हो गया है।\nलॉगिन के लिए आपका Restaurant ID है:\n\n${data.data.id}\n\n(इसे सुरक्षित रख लें)`);
         setVendorForm({ name: '', fssai: '', ownerName: '', phone: '' });
         fetchRestaurantsList(); setView('home');
       }
     } catch (err) { alert("🌐 नेटवर्क एरर!"); }
   };
 
-  // 📊 वेंडर का डैशबोर्ड कैलकुलेशन (सिर्फ़ उसके आर्डर दिखेंगे)
   const vendorOrders = loggedInVendor ? orders.filter(o => o.restaurantId === loggedInVendor.id) : [];
   const todaySales = vendorOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString() && o.status === 'DELIVERED').reduce((acc, o) => acc + Number(o.totalAmount), 0);
   const todayOrdersCount = vendorOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).length;
@@ -182,7 +211,6 @@ function App() {
           {!isAdminLoggedIn ? (
             <div style={{ maxWidth: '400px', margin: 'auto', background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', textAlign: 'center' }}>
               <h2 style={{ color: '#ea580c' }}>Partner Login 🔐</h2>
-              <p style={{color: '#64748b', fontSize: '14px', marginBottom: '20px'}}>अपना Restaurant ID डालें (उदा: 0142bf0e-...)</p>
               <form onSubmit={handleVendorLogin}>
                 <input type="text" value={vendorLoginId} onChange={e => setVendorLoginId(e.target.value)} placeholder="Enter Restaurant ID..." style={{ width: '90%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }} required/>
                 <button type="submit" className="add-btn">Login to Dashboard</button>
@@ -200,7 +228,6 @@ function App() {
                 <div className="card" style={{background:'#fff7ed', padding:'20px', borderRadius:'12px', flex:1, border:'1px solid #fed7aa'}}><p style={{margin:0, color:'#ea580c', fontWeight:'600'}}>Total Orders Today</p><h2 style={{margin:'5px 0 0 0', fontSize:'28px'}}>{todayOrdersCount}</h2></div>
               </div>
 
-              {/* 🍲 Menu Management */}
               <div style={{background: 'white', padding: '20px', borderRadius: '12px', marginBottom: '30px', boxShadow: '0 4px 6px rgba(0,0,0,0.02)'}}>
                 <h3 style={{marginTop: 0}}>Manage Menu 🍲</h3>
                 <form onSubmit={handleAddItem} style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
@@ -209,7 +236,6 @@ function App() {
                   <button type="submit" className="add-btn" style={{width: 'auto'}}>Add Item</button>
                 </form>
 
-                <h4 style={{borderBottom: '1px solid #eee', paddingBottom: '10px'}}>Current Items:</h4>
                 <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
                   {menu.length === 0 ? <p>No items added yet.</p> : menu.map(m => (
                     <div key={m.id} style={{display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0'}}>
@@ -220,23 +246,20 @@ function App() {
                 </div>
               </div>
 
-              {/* 📦 Order Management */}
               <h3>Live Orders ({vendorOrders.length}) 📊</h3>
               <div className="admin-menu-list">
                 {vendorOrders.slice().reverse().map((order, index) => (
                   <div key={order.id} className="admin-menu-item" style={{background: order.status==='DELIVERED'?'#f8fafc': order.status==='REJECTED'?'#fef2f2' :'#f0fdf4', display:'flex', justifyContent:'space-between', padding:'15px', marginBottom:'12px', border: order.status==='DELIVERED'?'1px solid #e2e8f0': order.status==='REJECTED'?'1px solid #fecaca' :'1px solid #bbf7d0'}}>
-                    
                     <div style={{flex: 1}}>
                       <div style={{fontSize: '18px'}}>🛒 <strong>Order #{vendorOrders.length - index}</strong> - <span style={{color: '#ea580c', fontWeight: 'bold'}}>₹{order.totalAmount}</span></div>
                       <div style={{fontSize: '14px', color: '#64748b', marginTop: '5px'}}>👤 {order.user?.name || 'Guest'} | 📱 {order.user?.phone || 'N/A'}</div>
                       <div style={{marginTop: '5px', color: order.status==='PENDING'?'#ea580c': order.status==='ACCEPTED'?'#eab308':'#64748b'}}><strong>Status:</strong> {order.status}</div>
                       
-                      {/* 🍲 यहाँ हमने आर्डर किये गए आइटम्स की लिस्ट जोड़ दी है */}
                       <div style={{marginTop: '12px', padding: '10px', background: 'white', borderRadius: '6px', border: '1px dashed #cbd5e1', display: 'inline-block', minWidth: '220px'}}>
                         <p style={{margin: '0 0 5px 0', fontSize: '13px', fontWeight: 'bold', color: '#475569'}}>Items to prepare:</p>
                         {order.items && order.items.length > 0 ? order.items.map((it, i) => (
                           <div key={i} style={{fontSize: '13px', color: '#334155', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', padding: '3px 0'}}>
-                            <span>• {it.menuItem?.name || 'Food Item'} x{it.quantity || 1}</span>
+                            <span>• {it.menuItem?.name || 'Dish'} x{it.quantity || 1}</span>
                             <span>₹{it.priceAtOrder || 0}</span>
                           </div>
                         )) : <div style={{fontSize: '13px', color: '#ef4444'}}>No items found</div>}
@@ -258,7 +281,6 @@ function App() {
                       {order.status === 'DELIVERED' && <span style={{color: '#16a34a', fontWeight: 'bold', padding: '0 10px'}}>DELIVERED ✅</span>}
                       {order.status === 'REJECTED' && <span style={{color: '#ef4444', fontWeight: 'bold', padding: '0 10px'}}>REJECTED ❌</span>}
                     </div>
-
                   </div>
                 ))}
                 {vendorOrders.length === 0 && <p style={{color: '#64748b', textAlign: 'center', padding: '20px'}}>No orders yet.</p>}
