@@ -143,12 +143,33 @@ function App() {
     }
   };
 
-  // 📝 6. नया रेस्टोरेंट (वेंडर) रजिस्टर करना
+  // 📝 नया रेस्टोरेंट रजिस्टर करने का असली फंक्शन
   const registerRestaurant = async (e) => {
     e.preventDefault();
-    alert(`🎉 बधाई हो ${vendorForm.ownerName} जी! '${vendorForm.name}' की रिक्वेस्ट हमारे पास आ गई है। (Backend API coming soon)`);
-    setVendorForm({ name: '', fssai: '', ownerName: '', phone: '' });
-    setView('home');
+    try {
+      const res = await fetch('https://eater-backend.onrender.com/api/restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          name: vendorForm.name,
+          ownerName: vendorForm.ownerName,
+          phone: vendorForm.phone,
+          fssai: vendorForm.fssai
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        alert(`🎉 बधाई हो ${vendorForm.ownerName} जी!\n'${vendorForm.name}' सफलतापूर्वक रजिस्टर हो गया है।\n\nआपका Restaurant ID: ${data.data.id}\n(कृपया इसे सेव कर लें)`);
+        
+        setVendorForm({ name: '', fssai: '', ownerName: '', phone: '' });
+        setView('home'); // फॉर्म भरने के बाद होमपेज पर भेज दें
+      } else {
+        alert("❌ रजिस्ट्रेशन फेल हो गया। बैकएंड में कुछ दिक्कत है।");
+      }
+    } catch (err) {
+      alert("🌐 नेटवर्क एरर: कृपया इंटरनेट कनेक्शन चेक करें।");
+    }
   };
 
   // 📊 7. कमाई का हिसाब
