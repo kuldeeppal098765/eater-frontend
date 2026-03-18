@@ -33,21 +33,29 @@ function App() {
   const fetchMenu = () => fetch(`https://eater-backend.onrender.com/api/menu/${mahikuRestaurantId}`).then(res => res.json()).then(data => setMenu(data));
   const fetchOrders = () => fetch(`https://eater-backend.onrender.com/api/orders`).then(res => res.json()).then(data => setOrders(data));
 
-  // 🚀 नया फंक्शन: मेन्यू में आइटम जोड़ना
+
+// 🚀 नया फंक्शन: मेन्यू में आइटम जोड़ना (Category के साथ)
   const handleAddItem = async (e) => {
     e.preventDefault();
     const res = await fetch('https://eater-backend.onrender.com/api/menu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...newItem, restaurantId: mahikuRestaurantId, price: Number(newItem.price) })
+      body: JSON.stringify({ 
+        ...newItem, 
+        restaurantId: mahikuRestaurantId, 
+        price: Number(newItem.price),
+        category: "Fast Food", // 👈 यह नया गार्ड है जो डेटाबेस को खुश रखेगा!
+        isVeg: true            // 👈 यह भी जोड़ दिया ताकि कोई एरर न आए
+      })
     });
     if (res.ok) {
       alert("✅ आइटम जुड़ गया!");
       setNewItem({ name: '', price: '', description: '' });
       fetchMenu();
+    } else {
+      alert("❌ सेव नहीं हुआ, बैकएंड में दिक्कत है।");
     }
   };
-
   // 🗑️ नया फंक्शन: आइटम डिलीट करना
   const deleteItem = async (id) => {
     if(window.confirm("क्या आप इसे हटाना चाहते हैं?")) {
