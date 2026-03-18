@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
-  // 🧭 नया स्टेट: 'home', 'menu' या 'admin'
   const [view, setView] = useState('home'); 
   const [menu, setMenu] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -10,21 +9,20 @@ function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
 
+  // 📝 नया स्टेट: नया आइटम जोड़ने के लिए
+  const [newItem, setNewItem] = useState({ name: '', price: '', description: '' });
+
   const mahikuRestaurantId = "cd92a6d1-2335-4f5e-9007-ffda681045a1";
 
-  // 🏪 असली दिखने वाले 'नकली' रेस्टोरेंट्स (UI के लिए)
   const mockRestaurants = [
     { id: mahikuRestaurantId, name: 'Mahiku Cafe & Restaurant', emoji: '🍕', rating: '4.9', time: '25-30 min', location: 'Near Arora Resort, Unnao', offer: '20% OFF', tags: 'Pizzas, Fast Food, Coffee' },
     { id: '2', name: 'Kanpur Spice House', emoji: '🍛', rating: '4.5', time: '35-40 min', location: 'Swaroop Nagar, Kanpur', offer: 'Free Delivery', tags: 'North Indian, Biryani' },
-    { id: '3', name: 'The Burger Club', emoji: '🍔', rating: '4.2', time: '20-25 min', location: 'Z Square Mall, Kanpur', offer: 'Buy 1 Get 1', tags: 'Burgers, American' },
-    { id: '4', name: 'Nawabi Street', emoji: '🍢', rating: '4.7', time: '40-45 min', location: 'Hazratganj, Lucknow', offer: '10% OFF', tags: 'Mughlai, Kebabs' }
+    { id: '3', name: 'The Burger Club', emoji: '🍔', rating: '4.2', time: '20-25 min', location: 'Z Square Mall, Kanpur', offer: 'Buy 1 Get 1', tags: 'Burgers, American' }
   ];
 
-  // 🍔 कैटेगरीज
   const categories = [
     { name: 'Pizza', icon: '🍕' }, { name: 'Burger', icon: '🍔' }, 
-    { name: 'Biryani', icon: '🥘' }, { name: 'Coffee', icon: '☕' }, 
-    { name: 'Thali', icon: '🍛' }, { name: 'Desserts', icon: '🍰' }
+    { name: 'Biryani', icon: '🥘' }, { name: 'Coffee', icon: '☕' }
   ];
 
   useEffect(() => {
@@ -35,7 +33,29 @@ function App() {
   const fetchMenu = () => fetch(`https://eater-backend.onrender.com/api/menu/${mahikuRestaurantId}`).then(res => res.json()).then(data => setMenu(data));
   const fetchOrders = () => fetch(`https://eater-backend.onrender.com/api/orders`).then(res => res.json()).then(data => setOrders(data));
 
-  // कार्ट और आर्डर फंक्शन (पुराने वाले ही हैं)
+  // 🚀 नया फंक्शन: मेन्यू में आइटम जोड़ना
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    const res = await fetch('https://eater-backend.onrender.com/api/menu', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newItem, restaurantId: mahikuRestaurantId, price: Number(newItem.price) })
+    });
+    if (res.ok) {
+      alert("✅ आइटम जुड़ गया!");
+      setNewItem({ name: '', price: '', description: '' });
+      fetchMenu();
+    }
+  };
+
+  // 🗑️ नया फंक्शन: आइटम डिलीट करना
+  const deleteItem = async (id) => {
+    if(window.confirm("क्या आप इसे हटाना चाहते हैं?")) {
+      await fetch(`https://eater-backend.onrender.com/api/menu/${id}`, { method: 'DELETE' });
+      fetchMenu();
+    }
+  };
+
   const addToCart = (item) => setCart([...cart, item]);
   const removeFromCart = (indexToRemove) => setCart(cart.filter((_, index) => index !== indexToRemove));
   
@@ -44,7 +64,7 @@ function App() {
     const totalAmount = cart.reduce((acc, item) => acc + Number(item.price), 0);
     const orderData = { userId: "20303580-7837-44f9-ba88-0136c02aa4f3", restaurantId: mahikuRestaurantId, totalAmount, items: cart.map(item => ({ menuItemId: item.id, quantity: 1, price: Number(item.price) })) };
     const res = await fetch('https://eater-backend.onrender.com/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
-    if (res.ok) { alert(`🎉 शानदार! ₹${totalAmount} का ऑर्डर प्लेस हो गया!`); setCart([]); fetchOrders(); setView('home'); }
+    if (res.ok) { alert(`🎉 ऑर्डर प्लेस हो गया!`); setCart([]); fetchOrders(); setView('home'); }
   };
 
   const handleLogin = (e) => {
@@ -56,17 +76,10 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* 📱 Zomato/Swiggy वाला असली Navigation Bar */}
       <nav className="national-nav">
         <div className="nav-left">
           <h1 className="logo-text" onClick={() => setView('home')}>Eater.</h1>
-          <div className="location-box">
-            <span className="pin-icon">📍</span>
-            <div>
-              <p className="loc-title">Home</p>
-              <p className="loc-desc">Kanpur, Uttar Pradesh, India</p>
-            </div>
-          </div>
+          <div className="location-box">📍 <div><p className="loc-title">Home</p><p className="loc-desc">Unnao, UP</p></div></div>
         </div>
         <div className="nav-right">
           <button className="nav-btn" onClick={() => setView('admin')}>💼 Partner Hub</button>
@@ -75,46 +88,21 @@ function App() {
         </div>
       </nav>
 
-      {/* 🏡 होमपेज (Multi-Vendor View) */}
       {view === 'home' && (
         <main className="home-content">
-          <div className="search-container">
-            <input type="text" placeholder="Search for restaurant, cuisine or a dish..." className="search-bar" />
-          </div>
-
           <section className="category-section">
             <h2>Kuldeep, what's on your mind?</h2>
             <div className="category-scroll">
-              {categories.map((cat, i) => (
-                <div key={i} className="category-bubble">
-                  <div className="cat-icon">{cat.icon}</div>
-                  <p>{cat.name}</p>
-                </div>
-              ))}
+              {categories.map((cat, i) => <div key={i} className="category-bubble"><div className="cat-icon">{cat.icon}</div><p>{cat.name}</p></div>)}
             </div>
           </section>
-
           <section className="restaurants-section">
-            <h2>Top restaurant chains in your city</h2>
+            <h2>Top restaurants in Unnao</h2>
             <div className="restaurant-grid">
               {mockRestaurants.map((rest) => (
-                <div key={rest.id} className="rest-card" onClick={() => {
-                  if(rest.id === mahikuRestaurantId) setView('menu');
-                  else alert("अभी सिर्फ Mahiku Cafe का मेन्यू लाइव है! यह एक डेमो है।");
-                }}>
-                  <div className="rest-image-placeholder">
-                    <span className="rest-huge-emoji">{rest.emoji}</span>
-                    <span className="offer-tag">{rest.offer}</span>
-                  </div>
-                  <div className="rest-info">
-                    <h3>{rest.name}</h3>
-                    <div className="rest-meta">
-                      <span className="rating">⭐ {rest.rating}</span>
-                      <span className="time">• {rest.time}</span>
-                    </div>
-                    <p className="tags">{rest.tags}</p>
-                    <p className="location">{rest.location}</p>
-                  </div>
+                <div key={rest.id} className="rest-card" onClick={() => rest.id === mahikuRestaurantId ? setView('menu') : alert("डेमो मोड")}>
+                  <div className="rest-image-placeholder"><span className="rest-huge-emoji">{rest.emoji}</span><span className="offer-tag">{rest.offer}</span></div>
+                  <div className="rest-info"><h3>{rest.name}</h3><p className="tags">{rest.tags}</p></div>
                 </div>
               ))}
             </div>
@@ -122,81 +110,67 @@ function App() {
         </main>
       )}
 
-      {/* 🍕 रेस्टोरेंट का मेन्यू (Single-Vendor View) */}
       {view === 'menu' && (
         <div className="main-container">
-          <button className="back-btn" onClick={() => setView('home')}>⬅ Back to Restaurants</button>
-          <header className="cafe-header">
-            <h1>Mahiku Cafe & Restaurant 🍕</h1>
-            <p>Unnao's Best Flavors, Now Just a Click Away!</p>
-          </header>
-          
+          <button className="back-btn" onClick={() => setView('home')}>⬅ Back</button>
+          <header className="cafe-header"><h1>Mahiku Cafe 🍕</h1></header>
           <div className="customer-layout">
             <div className="menu-grid">
               {menu.map(item => (
                 <div key={item.id} className="menu-card">
-                  <h3>{item.name}</h3>
-                  <p className="desc">{item.description}</p>
-                  <p className="price">₹{item.price}</p>
-                  <button className="add-btn" onClick={() => addToCart(item)}>Add to Cart 🛒</button>
+                  <h3>{item.name}</h3><p className="price">₹{item.price}</p>
+                  <button className="add-btn" onClick={() => addToCart(item)}>Add 🛒</button>
                 </div>
               ))}
             </div>
-
             <div className="cart-sidebar">
-              <h2>Your Cart ({cart.length})</h2>
-              {cart.length === 0 ? <p>आपकी टोकरी खाली है। कुछ स्वादिष्ट चुनें! 😋</p> : (
-                <div className="cart-items">
-                  {cart.map((item, index) => (
-                    <div key={index} className="cart-item">
-                      <span>{item.name}</span>
-                      <div><span>₹{item.price}</span> <button className="remove-btn" onClick={() => removeFromCart(index)}>❌</button></div>
-                    </div>
-                  ))}
-                  <div className="cart-total">
-                    <h3>Total: ₹{cart.reduce((acc, item) => acc + Number(item.price), 0)}</h3>
-                    <button className="checkout-btn" onClick={placeCartOrder}>Place Order Now</button>
-                  </div>
-                </div>
-              )}
+              <h2>Cart ({cart.length})</h2>
+              {cart.map((item, i) => <div key={i} className="cart-item">{item.name} - ₹{item.price}</div>)}
+              {cart.length > 0 && <button className="checkout-btn" onClick={placeCartOrder}>Order Now</button>}
             </div>
           </div>
         </div>
       )}
 
-      {/* 🔐 एडमिन / पार्टनर डैशबोर्ड */}
       {view === 'admin' && (
         <div className="main-container">
-          <button className="back-btn" onClick={() => setView('home')}>⬅ Back to Home</button>
+          <button className="back-btn" onClick={() => setView('home')}>⬅ Back</button>
           <section className="admin-view">
             {!isAdminLoggedIn ? (
               <div className="login-form-container">
                 <h2>Partner Login 🔐</h2>
                 <form onSubmit={handleLogin}>
-                  <input type="password" placeholder="Enter Password..." value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <input type="password" placeholder="Password..." value={password} onChange={(e) => setPassword(e.target.value)} required />
                   <button type="submit" className="add-btn">Login</button>
                 </form>
               </div>
             ) : (
               <>
-                <div className="admin-header-flex">
-                  <h2>Mahiku Cafe Dashboard 📈</h2>
-                  <button className="del-btn" onClick={() => setIsAdminLoggedIn(false)}>Logout 🚪</button>
+                <div className="admin-header-flex"><h2>Admin Dashboard 📈</h2><button onClick={() => setIsAdminLoggedIn(false)}>Logout</button></div>
+                
+                {/* ➕ नया आइटम जोड़ने का फॉर्म */}
+                <div className="add-item-form card">
+                  <h3>Add New Dish 🍲</h3>
+                  <form onSubmit={handleAddItem}>
+                    <input type="text" placeholder="Dish Name" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} required />
+                    <input type="number" placeholder="Price" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} required />
+                    <input type="text" placeholder="Description" value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} />
+                    <button type="submit" className="add-btn">Save to Menu</button>
+                  </form>
                 </div>
-                {/* आपका पुराना एडमिन डेटा यहाँ है */}
-                <div className="stats-grid">
-                  <div className="stat-card"><h3>Total Orders</h3><p>{orders.length}</p></div>
-                  <div className="stat-card revenue"><h3>Total Sales</h3><p>₹{orders.reduce((acc, order) => acc + Number(order.totalAmount), 0)}</p></div>
-                </div>
-                <h2>Live Orders 📊</h2>
-                <div className="order-list">
-                  {orders.map(order => (
-                    <div key={order.id} className="order-item">
-                      <p><strong>Order #{order.orderNumber}</strong> - ₹{order.totalAmount}</p>
-                      <p>Status: <span className={`status ${order.status}`}>{order.status}</span></p>
+
+                <h3>Current Menu 📋</h3>
+                <div className="admin-menu-list">
+                  {menu.map(item => (
+                    <div key={item.id} className="admin-menu-item">
+                      <span>{item.name} - ₹{item.price}</span>
+                      <button className="del-btn" onClick={() => deleteItem(item.id)}>🗑️ Delete</button>
                     </div>
                   ))}
                 </div>
+
+                <h3>Live Orders 📊</h3>
+                <p>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
               </>
             )}
           </section>
@@ -205,5 +179,4 @@ function App() {
     </div>
   )
 }
-
 export default App
