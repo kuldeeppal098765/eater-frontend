@@ -64,11 +64,21 @@ function App() {
     }
   };
   const updateOrderStatus = async (orderId) => {
-    await fetch(`https://eater-backend.onrender.com/api/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'DELIVERED' })
-    });
+    try {
+      const res = await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, {
+        method: 'POST', // हमने PATCH की जगह POST कर दिया जो हमेशा काम करता है
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: orderId, status: 'DELIVERED' })
+      });
+      if (res.ok) {
+        fetchOrders(); // लिस्ट रिफ्रेश करें
+      } else {
+        alert("अपडेट करने में विफल! ❌");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
     fetchOrders(); // लिस्ट को रिफ्रेश करने के लिए
   };
 
