@@ -178,9 +178,15 @@ function App() {
                 </div>
 
                 <h3>Live Orders 📊</h3>
-                <p>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
-              </>
-            )}
+                <div className="admin-menu-list">
+                  {orders.map((order, index) => (
+                    <div key={order.id} className="admin-menu-item" style={{ background: '#f0fdf4', borderLeft: '4px solid #16a34a' }}>
+                      <span>🛒 <strong>Order #{index + 1}</strong> - ₹{order.totalAmount}</span>
+                      <span style={{color: '#16a34a'}}><strong>{order.status}</strong></span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{fontWeight: 'bold', fontSize: '1.2rem', marginTop: '10px'}}>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
           </section>
         </div>
       )}
