@@ -8,8 +8,6 @@ function App() {
   const [cart, setCart] = useState([]); 
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [password, setPassword] = useState('');
-
-  // 📝 नया स्टेट: नया आइटम जोड़ने के लिए
   const [newItem, setNewItem] = useState({ name: '', price: '', description: '' });
 
   const mahikuRestaurantId = "cd92a6d1-2335-4f5e-9007-ffda681045a1";
@@ -33,88 +31,56 @@ function App() {
   const fetchMenu = () => fetch(`https://eater-backend.onrender.com/api/menu/${mahikuRestaurantId}`).then(res => res.json()).then(data => setMenu(data));
   const fetchOrders = () => fetch(`https://eater-backend.onrender.com/api/orders`).then(res => res.json()).then(data => setOrders(data));
 
-
-// 🚀 नया फंक्शन: मेन्यू में आइटम जोड़ना (Category के साथ)
   const handleAddItem = async (e) => {
     e.preventDefault();
     const res = await fetch('https://eater-backend.onrender.com/api/menu', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        ...newItem, 
-        restaurantId: mahikuRestaurantId, 
-        price: Number(newItem.price),
-        category: "Fast Food", // 👈 यह नया गार्ड है जो डेटाबेस को खुश रखेगा!
-        isVeg: true            // 👈 यह भी जोड़ दिया ताकि कोई एरर न आए
-      })
+      body: JSON.stringify({ ...newItem, restaurantId: mahikuRestaurantId, price: Number(newItem.price), category: "Fast Food", isVeg: true })
     });
     if (res.ok) {
-      alert("✅ आइटम जुड़ गया!");
+      alert("✅ आइटम जुड़ गया!");
       setNewItem({ name: '', price: '', description: '' });
       fetchMenu();
-    } else {
-      alert("❌ सेव नहीं हुआ, बैकएंड में दिक्कत है।");
     }
   };
-  // 🗑️ नया फंक्शन: आइटम डिलीट करना
+
   const deleteItem = async (id) => {
     if(window.confirm("क्या आप इसे हटाना चाहते हैं?")) {
       await fetch(`https://eater-backend.onrender.com/api/menu/${id}`, { method: 'DELETE' });
       fetchMenu();
     }
   };
+
   const updateOrderStatus = async (orderId) => {
     try {
       const res = await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, {
-        method: 'POST', // हमने PATCH की जगह POST कर दिया जो हमेशा काम करता है
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId: orderId, status: 'DELIVERED' })
       });
-      if (res.ok) {
-        fetchOrders(); // लिस्ट रिफ्रेश करें
-      } else {
-        alert("अपडेट करने में विफल! ❌");
-      }
-    } catch (err) {
-      console.error(err);
-    }
+      if (res.ok) fetchOrders();
+    } catch (err) { console.error(err); }
   };
-  // 🖨️ बिल प्रिंट करने का जादुई फंक्शन
+
   const printBill = (order, index) => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
-        <head>
-          <title>Invoice - Mahiku Cafe</title>
-          <style>
-            body { font-family: 'Courier New', Courier, monospace; padding: 20px; text-align: center; }
-            .bill-card { border: 1px dashed #000; padding: 15px; width: 300px; margin: auto; }
-            h2 { margin: 0; }
-            .details { text-align: left; margin-top: 15px; border-top: 1px solid #000; padding-top: 10px; }
-            .total { font-weight: bold; font-size: 1.2rem; margin-top: 10px; border-top: 1px double #000; padding-top: 5px; }
-            .footer { margin-top: 15px; font-size: 0.8rem; }
-          </style>
-        </head>
+        <head><title>Invoice - Mahiku Cafe</title><style>body { font-family: 'Courier New', monospace; text-align: center; } .bill-card { border: 1px dashed #000; padding: 15px; width: 250px; margin: auto; } .total { font-weight: bold; margin-top: 10px; border-top: 1px solid #000; }</style></head>
         <body>
           <div class="bill-card">
             <h2>MAHIKU CAFE 🍕</h2>
-            <p>Unnao, Uttar Pradesh</p>
-            <div class="details">
-              <p><strong>Order ID:</strong> #${index + 1}</p>
-              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-              <p>---------------------------</p>
-              <p>Pizza (Regular) x 1</p> 
-            </div>
+            <p>Order #${index + 1} | ${new Date().toLocaleDateString()}</p>
+            <p>Items: Pizza (Regular)</p>
             <div class="total">Total: ₹${order.totalAmount}</div>
-            <div class="footer">धन्यवाद! फिर आइयेगा। 🙏</div>
+            <p>धन्यवाद! 🙏</p>
           </div>
           <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
         </body>
       </html>
     `);
     printWindow.document.close();
-  };
-    fetchOrders(); // लिस्ट को रिफ्रेश करने के लिए
   };
 
   const addToCart = (item) => setCart([...cart, item]);
@@ -134,7 +100,6 @@ function App() {
     else alert("गलत पासवर्ड! ❌");
     setPassword('');
   };
-  
 
   return (
     <div className="app-container">
@@ -209,8 +174,6 @@ function App() {
             ) : (
               <>
                 <div className="admin-header-flex"><h2>Admin Dashboard 📈</h2><button onClick={() => setIsAdminLoggedIn(false)}>Logout</button></div>
-                
-                {/* ➕ नया आइटम जोड़ने का फॉर्म */}
                 <div className="add-item-form card">
                   <h3>Add New Dish 🍲</h3>
                   <form onSubmit={handleAddItem}>
@@ -231,40 +194,37 @@ function App() {
                   ))}
                 </div>
 
-              <h3>Live Orders 📊</h3>
-                <div className="admin-menu-list">
-                  {orders.map((order, index) => (
-                    <div key={order.id} className="admin-menu-item" style={{ background: order.status === 'DELIVERED' ? '#f3f4f6' : '#f0fdf4', borderLeft: '4px solid #16a34a', padding: '10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span>🛒 <strong>Order #{index + 1}</strong> - ₹{order.totalAmount}</span>
-                      <div>
-                        <span style={{ marginRight: '15px', color: order.status === 'DELIVERED' ? '#6b7280' : '#16a34a' }}><strong>{order.status}</strong></span>
-                        {order.status === 'PENDING' && (
-                          {/* 🖨️ प्रिंट और डिलीवर बटन्स */}
-<div style={{ display: 'flex', gap: '10px' }}>
-  <button 
-    onClick={() => printBill(order, index)} 
-    style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
-  >
-    Print 🖨️
-  </button>
+                <h3>Live Orders 📊</h3>
+<div className="admin-menu-list">
+  {orders.map((order, index) => (
+    <div key={order.id} className="admin-menu-item" style={{ background: order.status === 'DELIVERED' ? '#f3f4f6' : '#f0fdf4', borderLeft: '4px solid #16a34a', padding: '10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span>🛒 <strong>Order #{index + 1}</strong> - ₹{order.totalAmount}</span>
+      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <span style={{ color: order.status === 'DELIVERED' ? '#6b7280' : '#16a34a' }}><strong>{order.status}</strong></span>
+        
+        {/* 🖨️ प्रिंट बटन अब हमेशा दिखेगा */}
+        <button 
+          onClick={() => printBill(order, index)} 
+          style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Print 🖨️
+        </button>
 
-  {order.status === 'PENDING' && (
-    <button 
-      onClick={() => updateOrderStatus(order.id)} 
-      style={{ background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
-    >
-      Deliver ✅
-    </button>
-  )}
+        {/* ✅ डिलीवर बटन सिर्फ पेंडिंग वालों के लिए */}
+        {order.status === 'PENDING' && (
+          <button 
+            onClick={() => updateOrderStatus(order.id)} 
+            style={{ background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Deliver ✅
+          </button>
+        )}
+      </div>
+    </div>
+  ))}
 </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                  
-                <p style={{fontWeight: 'bold', fontSize: '1.2rem', marginTop: '10px'}}>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
-                </>
+                <p style={{fontWeight: 'bold', fontSize: '1.2rem'}}>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
+              </>
             )}
           </section>
         </div>
