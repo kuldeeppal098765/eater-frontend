@@ -63,6 +63,14 @@ function App() {
       fetchMenu();
     }
   };
+  const updateOrderStatus = async (orderId) => {
+    await fetch(`https://eater-backend.onrender.com/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DELIVERED' })
+    });
+    fetchOrders(); // लिस्ट को रिफ्रेश करने के लिए
+  };
 
   const addToCart = (item) => setCart([...cart, item]);
   const removeFromCart = (indexToRemove) => setCart(cart.filter((_, index) => index !== indexToRemove));
@@ -177,15 +185,21 @@ function App() {
                   ))}
                 </div>
 
-                <h3>Live Orders 📊</h3>
+              <h3>Live Orders 📊</h3>
                 <div className="admin-menu-list">
                   {orders.map((order, index) => (
-                    <div key={order.id} className="admin-menu-item" style={{ background: '#f0fdf4', borderLeft: '4px solid #16a34a', padding: '10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                    <div key={order.id} className="admin-menu-item" style={{ background: order.status === 'DELIVERED' ? '#f3f4f6' : '#f0fdf4', borderLeft: '4px solid #16a34a', padding: '10px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>🛒 <strong>Order #{index + 1}</strong> - ₹{order.totalAmount}</span>
-                      <span style={{color: '#16a34a'}}><strong>{order.status}</strong></span>
+                      <div>
+                        <span style={{ marginRight: '15px', color: order.status === 'DELIVERED' ? '#6b7280' : '#16a34a' }}><strong>{order.status}</strong></span>
+                        {order.status === 'PENDING' && (
+                          <button onClick={() => updateOrderStatus(order.id)} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Deliver ✅</button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
+                  
                 <p style={{fontWeight: 'bold', fontSize: '1.2rem', marginTop: '10px'}}>Total Sales: ₹{orders.reduce((acc, o) => acc + Number(o.totalAmount), 0)}</p>
                 </>
             )}
