@@ -79,6 +79,41 @@ function App() {
       console.error(err);
     }
   };
+  // 🖨️ बिल प्रिंट करने का जादुई फंक्शन
+  const printBill = (order, index) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice - Mahiku Cafe</title>
+          <style>
+            body { font-family: 'Courier New', Courier, monospace; padding: 20px; text-align: center; }
+            .bill-card { border: 1px dashed #000; padding: 15px; width: 300px; margin: auto; }
+            h2 { margin: 0; }
+            .details { text-align: left; margin-top: 15px; border-top: 1px solid #000; padding-top: 10px; }
+            .total { font-weight: bold; font-size: 1.2rem; margin-top: 10px; border-top: 1px double #000; padding-top: 5px; }
+            .footer { margin-top: 15px; font-size: 0.8rem; }
+          </style>
+        </head>
+        <body>
+          <div class="bill-card">
+            <h2>MAHIKU CAFE 🍕</h2>
+            <p>Unnao, Uttar Pradesh</p>
+            <div class="details">
+              <p><strong>Order ID:</strong> #${index + 1}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+              <p>---------------------------</p>
+              <p>Pizza (Regular) x 1</p> 
+            </div>
+            <div class="total">Total: ₹${order.totalAmount}</div>
+            <div class="footer">धन्यवाद! फिर आइयेगा। 🙏</div>
+          </div>
+          <script>setTimeout(() => { window.print(); window.close(); }, 500);</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
     fetchOrders(); // लिस्ट को रिफ्रेश करने के लिए
   };
 
@@ -204,7 +239,24 @@ function App() {
                       <div>
                         <span style={{ marginRight: '15px', color: order.status === 'DELIVERED' ? '#6b7280' : '#16a34a' }}><strong>{order.status}</strong></span>
                         {order.status === 'PENDING' && (
-                          <button onClick={() => updateOrderStatus(order.id)} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Deliver ✅</button>
+                          {/* 🖨️ प्रिंट और डिलीवर बटन्स */}
+<div style={{ display: 'flex', gap: '10px' }}>
+  <button 
+    onClick={() => printBill(order, index)} 
+    style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+  >
+    Print 🖨️
+  </button>
+
+  {order.status === 'PENDING' && (
+    <button 
+      onClick={() => updateOrderStatus(order.id)} 
+      style={{ background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
+    >
+      Deliver ✅
+    </button>
+  )}
+</div>
                         )}
                       </div>
                     </div>
