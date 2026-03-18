@@ -89,6 +89,20 @@ function App() {
     else alert("गलत पासवर्ड! ❌");
     setPassword('');
   };
+  // 🚚 ऑर्डर स्टेटस अपडेट करने का रास्ता (PATCH)
+app.patch('/api/orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updatedOrder = await prisma.order.update({
+      where: { id: id },
+      data: { status: status },
+    });
+    res.json(updatedOrder);
+  } catch (error) {
+    res.status(500).json({ error: "Order update failed" });
+  }
+});
 
   return (
     <div className="app-container">
