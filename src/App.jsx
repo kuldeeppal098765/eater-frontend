@@ -77,13 +77,16 @@ function App() {
     printWindow.document.close();
   };
 
- const placeCartOrder = async () => {
+const placeCartOrder = async () => {
     if (cart.length === 0 || !custInfo.name || !custInfo.phone) {
       alert("कृपया नाम और फोन नंबर दर्ज करें! 📝");
       return;
     }
     const totalAmount = cart.reduce((acc, item) => acc + Number(item.price), 0);
+    
+    // 🔑 हमने 'userId' वापस जोड़ दिया ताकि पुराना बैकएंड क्रैश न हो
     const orderData = { 
+      userId: "20303580-7837-44f9-ba88-0136c02aa4f3", 
       userName: custInfo.name, 
       userPhone: custInfo.phone,
       restaurantId: mahikuRestaurantId, 
@@ -109,10 +112,9 @@ function App() {
         alert("❌ ऑर्डर फेल हो गया: " + (errorData.error || "सर्वर एरर"));
       }
     } catch (err) {
-      alert("🌐 नेटवर्क की समस्या: बैकएंड सर्वर अभी सो रहा है या कनेक्ट नहीं हो पा रहा।");
+      alert("🌐 नेटवर्क एरर: कृपया अपना इंटरनेट चेक करें।");
     }
   };
-
   const todaySales = orders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).reduce((acc, o) => acc + Number(o.totalAmount), 0);
 
   return (
