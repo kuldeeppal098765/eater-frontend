@@ -85,13 +85,28 @@ function App() {
     }
   };
 
+  // 📦 आर्डर का स्टेटस बदलने वाला स्मार्ट फंक्शन
   const updateOrderStatus = async (orderId, newStatus) => {
-    await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({ orderId, status: newStatus }) 
-    });
-    fetchOrders();
+    try {
+      // 1. क्लिक करते ही पता चले कि काम हो रहा है
+      console.log(`Updating order ${orderId} to ${newStatus}...`);
+      
+      const res = await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ orderId, status: newStatus }) 
+      });
+      
+      if(res.ok) {
+        // 2. सफलता मिलने पर लिस्ट रिफ्रेश करें
+        fetchOrders(); 
+      } else {
+        alert("❌ सर्वर ने स्टेटस बदलने से मना कर दिया। शायद कुछ दिक्कत है।");
+      }
+    } catch (err) {
+      // 3. अगर सर्वर सो रहा है या इंटरनेट नहीं है
+      alert("🌐 नेटवर्क एरर! या बैकएंड सर्वर सो रहा है। कृपया 30 सेकंड रुककर दोबारा क्लिक करें।");
+    }
   };
 
   const printBill = (order, index) => {
