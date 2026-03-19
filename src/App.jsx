@@ -85,12 +85,10 @@ function App() {
     }
   };
 
-  // 📦 आर्डर का स्टेटस बदलने वाला स्मार्ट फंक्शन
+  // 🛡️ सबसे सुरक्षित और स्मार्ट आर्डर अपडेट फंक्शन
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      // 1. क्लिक करते ही पता चले कि काम हो रहा है
       console.log(`Updating order ${orderId} to ${newStatus}...`);
-      
       const res = await fetch(`https://eater-backend.onrender.com/api/orders/update-status`, { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
@@ -98,14 +96,13 @@ function App() {
       });
       
       if(res.ok) {
-        // 2. सफलता मिलने पर लिस्ट रिफ्रेश करें
         fetchOrders(); 
       } else {
-        alert("❌ सर्वर ने स्टेटस बदलने से मना कर दिया। शायद कुछ दिक्कत है।");
+        const errorText = await res.text();
+        alert(`❌ सर्वर ने स्टेटस बदलने से मना कर दिया। असली वजह:\n\n${errorText}`);
       }
     } catch (err) {
-      // 3. अगर सर्वर सो रहा है या इंटरनेट नहीं है
-      alert("🌐 नेटवर्क एरर! या बैकएंड सर्वर सो रहा है। कृपया 30 सेकंड रुककर दोबारा क्लिक करें।");
+      alert("🌐 नेटवर्क एरर! या बैकएंड सर्वर सो रहा है।");
     }
   };
 
@@ -146,7 +143,6 @@ function App() {
     } catch (err) { alert("🌐 नेटवर्क एरर!"); }
   };
 
-  // डेटा फिल्टरिंग
   const safeOrders = Array.isArray(orders) ? orders : [];
   const vendorOrders = loggedInVendor ? safeOrders.filter(o => o.restaurantId === loggedInVendor.id) : [];
   const todaySales = vendorOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString() && o.status === 'DELIVERED').reduce((acc, o) => acc + Number(o.totalAmount), 0);
@@ -271,45 +267,37 @@ function App() {
                 ))}
               </div>
 
-              {/* 🍔 लाइव आर्डर्स लिस्ट - अपडेटेड */}
-<h3>Live Orders</h3>
-{vendorOrders.slice().reverse().map((order, index) => (
-  <div key={order.id} style={{
-    background: order.status === 'DELIVERED' ? '#f8fafc' : order.status === 'REJECTED' ? '#fef2f2' : '#f0fdf4', 
-    padding: '15px', 
-    borderRadius: '10px', 
-    marginBottom: '10px', 
-    borderLeft: `5px solid ${order.status === 'REJECTED' ? '#ef4444' : '#ea580c'}`
-  }}>
-    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-      <span><strong>Order #{vendorOrders.length - index}</strong> - ₹{order.totalAmount}</span>
-      <div style={{display: 'flex', gap: '5px'}}>
-        <button onClick={() => printBill(order, index)}>Print 🖨️</button>
-        
-        {/* 🆕 यहाँ Reject बटन वापस आ गया है */}
-        {order.status === 'PENDING' && (
-          <>
-            <button onClick={() => updateOrderStatus(order.id, 'ACCEPTED')} style={{background: '#eab308', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Accept</button>
-            <button onClick={() => updateOrderStatus(order.id, 'REJECTED')} style={{background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Reject</button>
-          </>
-        )}
-        
-        {order.status === 'ACCEPTED' && (
-          <button onClick={() => updateOrderStatus(order.id, 'DELIVERED')} style={{background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Deliver</button>
-        )}
-      </div>
-    </div>
-    
-    <p style={{fontSize: '12px', margin: '5px 0'}}>
-      👤 {order.user?.name} | 
-      <strong style={{color: order.status === 'REJECTED' ? '#ef4444' : '#334155'}}> Status: {order.status}</strong>
-    </p>
-
-    <div style={{fontSize: '12px', background: 'white', padding: '8px', borderRadius: '5px', border: '1px dashed #cbd5e1'}}>
-      {order.items?.map((it, i) => <div key={i}>• {it.menuItem?.name} x{it.quantity}</div>)}
-    </div>
-  </div>
-))}
+              {/* Live Orders - यहाँ सारे बटन्स 100% सुरक्षित हैं */}
+              <h3>Live Orders</h3>
+              {vendorOrders.slice().reverse().map((order, index) => (
+                <div key={order.id} style={{
+                  background: order.status === 'DELIVERED' ? '#f8fafc' : order.status === 'REJECTED' ? '#fef2f2' : '#f0fdf4', 
+                  padding: '15px', 
+                  borderRadius: '10px', 
+                  marginBottom: '10px', 
+                  borderLeft: `5px solid ${order.status === 'REJECTED' ? '#ef4444' : '#ea580c'}`
+                }}>
+                  <div style={{display:'flex', justifyContent:'space-between'}}>
+                    <span><strong>Order #{vendorOrders.length - index}</strong> - ₹{order.totalAmount}</span>
+                    <div style={{display: 'flex', gap: '5px'}}>
+                      <button onClick={() => printBill(order, index)}>Print 🖨️</button>
+                      {order.status === 'PENDING' && (
+                        <>
+                          <button onClick={() => updateOrderStatus(order.id, 'ACCEPTED')} style={{background: '#eab308', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Accept</button>
+                          <button onClick={() => updateOrderStatus(order.id, 'REJECTED')} style={{background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Reject</button>
+                        </>
+                      )}
+                      {order.status === 'ACCEPTED' && (
+                        <button onClick={() => updateOrderStatus(order.id, 'DELIVERED')} style={{background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Deliver</button>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{fontSize:'12px', margin:'5px 0'}}>👤 {order.user?.name} | <strong style={{color: order.status === 'REJECTED' ? '#ef4444' : '#334155'}}>Status: {order.status}</strong></p>
+                  <div style={{fontSize:'12px', background:'white', padding:'8px', borderRadius:'5px', border:'1px dashed #cbd5e1'}}>
+                    {order.items?.map((it, i) => <div key={i}>• {it.menuItem?.name} x{it.quantity}</div>)}
+                  </div>
+                </div>
+              ))}
             </>
           )}
         </div>
