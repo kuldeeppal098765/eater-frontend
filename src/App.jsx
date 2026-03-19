@@ -12,19 +12,21 @@ function App() {
   const [custInfo, setCustInfo] = useState({ name: '', phone: '' });
   const [vendorForm, setVendorForm] = useState({ name: '', fssai: '', ownerName: '', phone: '' });
 
-  // 🌟 रेस्टोरेंट और लॉगिन State
   const [restaurantsList, setRestaurantsList] = useState([]);
   const [activeRestId, setActiveRestId] = useState("");
   const [activeRestName, setActiveRestName] = useState("");
   const [vendorLoginId, setVendorLoginId] = useState('');
   const [loggedInVendor, setLoggedInVendor] = useState(null);
 
+  // 🔑 कस्टमर की डमी ID (भविष्य में OTP लॉगिन से आएगी)
+  const myCustomerId = "20303580-7837-44f9-ba88-0136c02aa4f3";
+
   useEffect(() => {
     fetchRestaurantsList();
     fetchOrders();
-    const interval = setInterval(() => { if (isAdminLoggedIn) fetchOrders(); }, 15000);
+    const interval = setInterval(() => { fetchOrders(); }, 10000); // कस्टमर और वेंडर दोनों के लिए हर 10 सेकंड में रिफ्रेश
     return () => clearInterval(interval);
-  }, [isAdminLoggedIn]);
+  }, []);
 
   const fetchRestaurantsList = () => {
     fetch('https://eater-backend.onrender.com/api/restaurants').then(res => res.json()).then(data => setRestaurantsList(data.data || []));
@@ -36,7 +38,7 @@ function App() {
   
   const fetchOrders = () => {
     fetch(`https://eater-backend.onrender.com/api/orders`).then(res => res.json()).then(data => {
-      if (data.length > orders.length && orders.length > 0) {
+      if (data.length > orders.length && orders.length > 0 && isAdminLoggedIn) {
         new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(()=>console.log("audio error"));
       }
       setOrders(data);
@@ -56,9 +58,7 @@ function App() {
       setLoggedInVendor(found);
       setIsAdminLoggedIn(true);
       fetchMenu(found.id);
-    } else {
-      alert("❌ गलत Restaurant ID! कृपया सही ID डालें।");
-    }
+    } else { alert("❌ गलत Restaurant ID!"); }
   };
 
   const handleAddItem = async (e) => {
@@ -79,7 +79,6 @@ function App() {
     fetchOrders();
   };
 
-  // 🖨️ एकदम सही जगह पर रखा गया स्मार्ट प्रिंट फंक्शन
   const printBill = (order, index) => {
     let itemsListHTML = '';
     if (order.items && order.items.length > 0) {
@@ -88,43 +87,25 @@ function App() {
         let itemPrice = item.priceAtOrder || item.price || 0;
         itemsListHTML += `<div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px;"><span>${itemName} x${item.quantity || 1}</span><span>₹${itemPrice}</span></div>`;
       });
-    } else {
-      itemsListHTML = `<p style="text-align:left; font-size:14px;">Food Items</p>`;
-    }
+    } else { itemsListHTML = `<p style="text-align:left; font-size:14px;">Food Items</p>`; }
 
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <style>body{font-family:'Courier New',monospace;text-align:center;padding:20px}.bill{border:1px dashed #000;padding:15px;width:260px;margin:auto}.line{border-top:1px dashed #000;margin:10px 0}</style>
-        </head>
-        <body>
-          <div class="bill">
-            <h2>${loggedInVendor?.name || 'Restaurant'} 🏪</h2>
-            <p style="font-size:12px;">Order #${orders.length - index} | ${new Date(order.createdAt).toLocaleDateString()}</p>
-            <div class="line"></div>
-            <p style="text-align:left; font-size:14px; margin:5px 0;"><strong>Cust:</strong> ${order.user?.name || 'Guest'}<br><strong>Phone:</strong> ${order.user?.phone || 'N/A'}</p>
-            <div class="line"></div>
-            <div style="margin: 15px 0;">${itemsListHTML}</div>
-            <div class="line"></div>
-            <h3 style="margin:10px 0; display:flex; justify-content:space-between;"><span>Total:</span><span>₹${order.totalAmount}</span></h3>
-            <div class="line"></div>
-            <p style="font-size:14px;">धन्यवाद! 🙏</p>
-          </div>
-          <script>setTimeout(()=>{window.print();window.close();},500);</script>
-        </body>
-      </html>
-    `);
+    printWindow.document.write(`<html><head><style>body{font-family:'Courier New',monospace;text-align:center;padding:20px}.bill{border:1px dashed #000;padding:15px;width:260px;margin:auto}.line{border-top:1px dashed #000;margin:10px 0}</style></head><body><div class="bill"><h2>${loggedInVendor?.name || 'Restaurant'} 🏪</h2><p style="font-size:12px;">Order #${orders.length - index} | ${new Date(order.createdAt).toLocaleDateString()}</p><div class="line"></div><p style="text-align:left; font-size:14px; margin:5px 0;"><strong>Cust:</strong> ${order.user?.name || 'Guest'}<br><strong>Phone:</strong> ${order.user?.phone || 'N/A'}</p><div class="line"></div><div style="margin: 15px 0;">${itemsListHTML}</div><div class="line"></div><h3 style="margin:10px 0; display:flex; justify-content:space-between;"><span>Total:</span><span>₹${order.totalAmount}</span></h3><div class="line"></div><p style="font-size:14px;">धन्यवाद! 🙏</p></div><script>setTimeout(()=>{window.print();window.close();},500);</script></body></html>`);
     printWindow.document.close();
   };
 
   const placeCartOrder = async () => {
     if (cart.length === 0 || !custInfo.name || !custInfo.phone) return alert("कृपया कार्ट में आइटम जोड़ें और नाम/नंबर दर्ज करें!");
     const totalAmount = cart.reduce((acc, item) => acc + Number(item.price), 0);
-    const orderData = { userId: "20303580-7837-44f9-ba88-0136c02aa4f3", userName: custInfo.name, userPhone: custInfo.phone, restaurantId: activeRestId, totalAmount, items: cart.map(item => ({ menuItemId: item.id, quantity: 1, price: Number(item.price) })) };
+    const orderData = { userId: myCustomerId, userName: custInfo.name, userPhone: custInfo.phone, restaurantId: activeRestId, totalAmount, items: cart.map(item => ({ menuItemId: item.id, quantity: 1, price: Number(item.price) })) };
     try {
       const res = await fetch('https://eater-backend.onrender.com/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(orderData) });
-      if (res.ok) { alert(`🎉 ऑर्डर प्लेस हो गया!`); setCart([]); setCustInfo({name:'', phone:''}); fetchOrders(); setView('home'); }
+      if (res.ok) { 
+        alert(`🎉 ऑर्डर प्लेस हो गया!`); 
+        setCart([]); 
+        fetchOrders(); 
+        setView('my-orders'); // 🚀 आर्डर होते ही कस्टमर को ट्रैकिंग पेज पर भेजें
+      }
     } catch (err) { alert("🌐 नेटवर्क एरर!"); }
   };
 
@@ -141,21 +122,81 @@ function App() {
     } catch (err) { alert("🌐 नेटवर्क एरर!"); }
   };
 
+  // डेटा कैलकुलेशन
   const vendorOrders = loggedInVendor ? orders.filter(o => o.restaurantId === loggedInVendor.id) : [];
-  const todaySales = vendorOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString() && o.status === 'DELIVERED').reduce((acc, o) => acc + Number(o.totalAmount), 0);
-  const todayOrdersCount = vendorOrders.filter(o => new Date(o.createdAt).toDateString() === new Date().toDateString()).length;
+  const myCustomerOrders = orders.filter(o => o.userId === myCustomerId); // कस्टमर के आर्डर्स
 
   return (
     <div className="app-container">
       <nav className="national-nav">
         <h1 className="logo-text" onClick={() => setView('home')} style={{cursor:'pointer'}}>Eater.</h1>
         <div className="nav-right">
+          {/* 🚀 नया "My Orders" बटन */}
+          <button className="nav-btn" onClick={() => setView('my-orders')} style={{background: '#f8fafc', borderColor: '#cbd5e1', color: '#334155'}}>📦 My Orders</button>
           <button className="nav-btn" onClick={() => setView('vendor-register')}>🏪 Add Restaurant</button>
           <button className="nav-btn" onClick={() => setView('admin')}>💼 Partner Hub</button>
           <div className="cart-icon" onClick={() => setView('menu')}>🛒 <span>{cart.length}</span></div>
         </div>
       </nav>
 
+      {/* 🚀 नया कस्टमर ट्रैकिंग पेज (My Orders) */}
+      {view === 'my-orders' && (
+        <div className="main-container" style={{maxWidth: '800px', margin: 'auto'}}>
+          <button className="back-btn" onClick={() => setView('home')}>⬅ Back to Home</button>
+          <h2 style={{marginTop: 0, color: '#1e293b'}}>My Orders & Tracking 📍</h2>
+          
+          <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            {myCustomerOrders.length === 0 ? <p style={{textAlign: 'center', color: '#64748b'}}>You haven't ordered anything yet.</p> : 
+              myCustomerOrders.slice().reverse().map((order) => {
+                const restName = restaurantsList.find(r => r.id === order.restaurantId)?.name || 'Restaurant';
+                // प्रोग्रेस बार की चौड़ाई सेट करना
+                let progressWidth = '10%'; 
+                let barColor = '#3b82f6'; // नीला
+                if(order.status === 'ACCEPTED') { progressWidth = '50%'; barColor = '#eab308'; } // पीला
+                if(order.status === 'DELIVERED') { progressWidth = '100%'; barColor = '#16a34a'; } // हरा
+                if(order.status === 'REJECTED') { progressWidth = '100%'; barColor = '#ef4444'; } // लाल
+
+                return (
+                  <div key={order.id} style={{background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9'}}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '15px'}}>
+                      <h3 style={{margin: 0, color: '#334155'}}>Order from {restName}</h3>
+                      <span style={{fontWeight: 'bold', color: '#ea580c', fontSize: '18px'}}>₹{order.totalAmount}</span>
+                    </div>
+                    
+                    {/* 🚦 लाइव ट्रैकिंग बार */}
+                    <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', color: '#64748b', fontWeight: 'bold'}}>
+                      <span style={{color: order.status !== 'REJECTED' ? '#3b82f6' : '#94a3b8'}}>📝 Placed</span>
+                      <span style={{color: (order.status === 'ACCEPTED' || order.status === 'DELIVERED') ? '#eab308' : '#94a3b8'}}>🍳 Preparing</span>
+                      <span style={{color: order.status === 'DELIVERED' ? '#16a34a' : '#94a3b8'}}>🛵 Delivered</span>
+                    </div>
+                    
+                    <div style={{background: '#f1f5f9', height: '10px', borderRadius: '5px', marginBottom: '15px', overflow: 'hidden'}}>
+                      <div style={{ background: barColor, height: '100%', width: progressWidth, transition: 'width 0.8s ease, background 0.8s ease' }}></div>
+                    </div>
+
+                    {order.status === 'REJECTED' && <p style={{color: '#ef4444', fontWeight: 'bold', margin: 0, textAlign: 'center'}}>❌ Order Cancelled by Restaurant</p>}
+                    
+                    {/* ⭐ रेटिंग सिस्टम (डिलीवर होने के बाद) */}
+                    {order.status === 'DELIVERED' && (
+                      <div style={{marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <p style={{margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#334155'}}>How was your food? 😋</p>
+                        <div>
+                          <span style={{cursor:'pointer', fontSize:'20px'}} onClick={()=>alert('Thanks for 1 star!')}>⭐</span>
+                          <span style={{cursor:'pointer', fontSize:'20px'}} onClick={()=>alert('Thanks for 2 stars!')}>⭐</span>
+                          <span style={{cursor:'pointer', fontSize:'20px'}} onClick={()=>alert('Thanks for 3 stars!')}>⭐</span>
+                          <span style={{cursor:'pointer', fontSize:'20px'}} onClick={()=>alert('Thanks for 4 stars!')}>⭐</span>
+                          <span style={{cursor:'pointer', fontSize:'20px'}} onClick={()=>alert('Thanks for 5 stars! 🌟')} title="Rate 5 Stars">⭐</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* बाकि के पेजेज (Home, Menu, Admin, Register) वैसे ही हैं... */}
       {view === 'home' && (
         <main className="home-content">
           <div className="hero-banner"><h2>Delicious Food, Delivered Fast 🚀</h2></div>
