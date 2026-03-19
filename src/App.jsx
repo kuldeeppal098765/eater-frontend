@@ -256,24 +256,45 @@ function App() {
                 ))}
               </div>
 
-              {/* Live Orders */}
-              <h3>Live Orders</h3>
-              {vendorOrders.slice().reverse().map((order, index) => (
-                <div key={order.id} style={{background:'white', padding:'15px', borderRadius:'10px', marginBottom:'10px', borderLeft:'5px solid #ea580c'}}>
-                  <div style={{display:'flex', justifyContent:'space-between'}}>
-                    <span><strong>Order #{vendorOrders.length - index}</strong> - ₹{order.totalAmount}</span>
-                    <div>
-                      <button onClick={() => printBill(order, index)} style={{marginRight:'5px'}}>Print 🖨️</button>
-                      {order.status === 'PENDING' && <button onClick={() => updateOrderStatus(order.id, 'ACCEPTED')}>Accept</button>}
-                      {order.status === 'ACCEPTED' && <button onClick={() => updateOrderStatus(order.id, 'DELIVERED')}>Deliver</button>}
-                    </div>
-                  </div>
-                  <p style={{fontSize:'12px', margin:'5px 0'}}>👤 {order.user?.name} | Status: {order.status}</p>
-                  <div style={{fontSize:'12px', background:'#f8fafc', padding:'5px'}}>
-                    {order.items?.map((it, i) => <div key={i}>• {it.menuItem?.name} x{it.quantity}</div>)}
-                  </div>
-                </div>
-              ))}
+              {/* 🍔 लाइव आर्डर्स लिस्ट - अपडेटेड */}
+<h3>Live Orders</h3>
+{vendorOrders.slice().reverse().map((order, index) => (
+  <div key={order.id} style={{
+    background: order.status === 'DELIVERED' ? '#f8fafc' : order.status === 'REJECTED' ? '#fef2f2' : '#f0fdf4', 
+    padding: '15px', 
+    borderRadius: '10px', 
+    marginBottom: '10px', 
+    borderLeft: `5px solid ${order.status === 'REJECTED' ? '#ef4444' : '#ea580c'}`
+  }}>
+    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+      <span><strong>Order #{vendorOrders.length - index}</strong> - ₹{order.totalAmount}</span>
+      <div style={{display: 'flex', gap: '5px'}}>
+        <button onClick={() => printBill(order, index)}>Print 🖨️</button>
+        
+        {/* 🆕 यहाँ Reject बटन वापस आ गया है */}
+        {order.status === 'PENDING' && (
+          <>
+            <button onClick={() => updateOrderStatus(order.id, 'ACCEPTED')} style={{background: '#eab308', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Accept</button>
+            <button onClick={() => updateOrderStatus(order.id, 'REJECTED')} style={{background: '#ef4444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Reject</button>
+          </>
+        )}
+        
+        {order.status === 'ACCEPTED' && (
+          <button onClick={() => updateOrderStatus(order.id, 'DELIVERED')} style={{background: '#16a34a', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px'}}>Deliver</button>
+        )}
+      </div>
+    </div>
+    
+    <p style={{fontSize: '12px', margin: '5px 0'}}>
+      👤 {order.user?.name} | 
+      <strong style={{color: order.status === 'REJECTED' ? '#ef4444' : '#334155'}}> Status: {order.status}</strong>
+    </p>
+
+    <div style={{fontSize: '12px', background: 'white', padding: '8px', borderRadius: '5px', border: '1px dashed #cbd5e1'}}>
+      {order.items?.map((it, i) => <div key={i}>• {it.menuItem?.name} x{it.quantity}</div>)}
+    </div>
+  </div>
+))}
             </>
           )}
         </div>
