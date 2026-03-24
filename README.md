@@ -1,3 +1,16 @@
+# Fresto frontend
+
+## API (fix “non-JSON” / rider login errors)
+
+1. Start **fresto-backend** on **port 5000** (`npm start` in `eater-backend`).
+2. Run **`npm run dev`** here — the app calls **`/api`**, and Vite **proxies** to `localhost:5000` (`vite.config.js`).
+
+Without the backend, responses may be HTML instead of JSON.
+
+Production: optional `VITE_API_URL` in `.env` (see `.env.example`).
+
+---
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
