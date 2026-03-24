@@ -722,14 +722,14 @@ export default function Partner() {
         err = { error: raw?.slice(0, 200) || `Server error (${res.status})` };
       }
       if (!res.ok) {
-        alert(err.error || `Could not save (${res.status}). Is the backend running on port 5000?`);
+        alert(err.error || `Could not save (${res.status}). Check API at https://vyaharam.com or your network.`);
         return;
       }
       setPartnerNote("");
       await fetchAllRestaurants();
       await refreshPartnerRestaurant();
     } catch {
-      alert("Network error — check that the API is running (http://localhost:5000).");
+      alert("Network error — check your connection or try again later (https://vyaharam.com).");
     } finally {
       setOnboardingBusy(false);
     }
@@ -1317,7 +1317,7 @@ export default function Partner() {
       sessionSetDemoOtp(needle, PARTNER_DEMO_OTP);
       setPartnerOtpStep(2);
       alert(
-        `Could not reach the server. Demo mode: enter OTP ${PARTNER_DEMO_OTP}. Fix VITE_API_URL (e.g. http://localhost:5000/api) and restart the dev server when the backend is up.`
+        `Could not reach the server. Demo mode: enter OTP ${PARTNER_DEMO_OTP}. Set VITE_API_URL to https://vyaharam.com (or https://vyaharam.com/api) and restart the dev server.`
       );
     } finally {
       setPartnerOtpBusy(false);
