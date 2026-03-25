@@ -10,11 +10,11 @@ export default defineConfig({
     proxy: {
       // Use VITE_API_URL=/api in .env to route /api → backend during dev
       "/api": {
-        target: "https://vyaharam.com",
+        target: "https://api.vyaharam.com",
         changeOrigin: true,
       },
       "/socket.io": {
-        target: "https://vyaharam.com",
+        target: "https://api.vyaharam.com",
         ws: true,
         changeOrigin: true,
       },

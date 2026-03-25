@@ -5,12 +5,12 @@ export const APP_BRAND = "VYAHARAM";
  * API base for all fetch() calls (must include `/api` — Express mounts routes under `/api`).
  *
  * Priority:
- * 1. VITE_API_URL from .env (e.g. https://vyaharam.com or https://vyaharam.com/api)
- * 2. Default: https://vyaharam.com/api (production API; CORS must allow your origin)
+ * 1. VITE_API_URL from .env (e.g. https://api.vyaharam.com or https://api.vyaharam.com/api)
+ * 2. Default: https://api.vyaharam.com/api (production API; CORS must allow your origin)
  *
  * Optional: set VITE_API_URL=/api and use Vite proxy (see vite.config.js server.proxy).
  */
-const DEFAULT_API_BASE = "https://vyaharam.com";
+const DEFAULT_API_BASE = "https://api.vyaharam.com";
 
 function normalizeApiBase(raw) {
   if (!raw) return DEFAULT_API_BASE;
@@ -32,5 +32,5 @@ export function getSocketUrl() {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return "https://vyaharam.com";
+  return "https://api.vyaharam.com";
 }

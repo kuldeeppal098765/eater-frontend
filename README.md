@@ -3,7 +3,7 @@
 ## API (fix “non-JSON” / rider login errors)
 
 1. Start **fresto-backend** on **port 5000** (`npm start` in `eater-backend`).
-2. Run **`npm run dev`** here — with `VITE_API_URL=/api`, Vite **proxies** `/api` to **`https://vyaharam.com`** (`vite.config.js`). Or set `VITE_API_URL=https://vyaharam.com/api` to call the API directly.
+2. Run **`npm run dev`** here — with `VITE_API_URL=/api`, Vite **proxies** `/api` to **`https://api.vyaharam.com`** (`vite.config.js`). Or set `VITE_API_URL=https://api.vyaharam.com/api` to call the API directly.
 
 Without the backend, responses may be HTML instead of JSON.
 
