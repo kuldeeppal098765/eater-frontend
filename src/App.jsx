@@ -40,7 +40,7 @@ export default function App() {
     <Router>
       <DynamicManifestLink />
       <InstallApp />
-      <div className="vyaharam-route-outlet">
+      <div className="vyaharam-route-outlet min-w-0 overflow-x-hidden">
         <Routes>
           <Route path="/admin/*" element={<Admin />} />
           <Route path="/partner/*" element={<Partner />} />

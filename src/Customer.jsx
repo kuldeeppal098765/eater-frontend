@@ -481,7 +481,7 @@ function StatusChip({ value }) {
 
 function KpiStrip({ items }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10 }}>
+    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((i) => (
         <div
           key={i.label}
@@ -597,7 +597,7 @@ function OrderSuccessPane() {
   const navigate = useNavigate();
   const orderId = sp.get("orderId") || "";
   return (
-    <div className="main-container" style={{ maxWidth: 520, margin: "auto", padding: "48px 5%", textAlign: "center" }}>
+    <div className="main-container py-12 text-center text-sm md:text-base">
       <h2 style={{ marginTop: 0 }}>Payment successful</h2>
       <p style={{ color: "#64748b", fontSize: 15 }}>Order confirmed. Track it anytime.</p>
       {orderId ? (
@@ -606,7 +606,7 @@ function OrderSuccessPane() {
         </p>
       ) : null}
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 24 }}>
-        <button type="button" className="checkout-btn" style={{ maxWidth: 200, marginTop: 0 }} onClick={() => navigate("/my-orders")}>
+        <button type="button" className="checkout-btn mx-auto mt-0 w-full max-w-xs" onClick={() => navigate("/my-orders")}>
           My orders
         </button>
         <button type="button" style={{ padding: "12px 18px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff", fontWeight: 700 }} onClick={() => navigate("/")}>
@@ -622,7 +622,7 @@ function Drawer({ open, title, onClose, children }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1200 }}>
       <button onClick={onClose} style={{ position: "absolute", inset: 0, border: "none", background: "rgba(2,6,23,0.5)", cursor: "pointer" }} />
-      <div style={{ position: "absolute", right: 0, top: 0, height: "100%", width: "min(95vw,460px)", background: "#fff", borderLeft: "1px solid #e2e8f0", padding: 16, overflowY: "auto" }}>
+      <div className="absolute right-0 top-0 h-full w-full max-w-md overflow-y-auto border-l border-slate-200 bg-white p-4">
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button onClick={onClose} style={{ border: "none", background: "#e2e8f0", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>Close</button>
@@ -1815,8 +1815,7 @@ export default function Customer() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="vyaharam-strict-cancel-title"
-            className="vyaharam-payment-overlay-panel"
-            style={{ maxWidth: 400, textAlign: "left" }}
+            className="vyaharam-payment-overlay-panel w-full max-w-md text-left"
             onClick={(ev) => ev.stopPropagation()}
           >
             <h2 id="vyaharam-strict-cancel-title" style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 800, color: "#0f172a" }}>
@@ -1929,7 +1928,7 @@ export default function Customer() {
         <Route
           path="/"
           element={
-            <main className="main-container">
+            <main className="main-container text-sm md:text-base">
               {fetchState === "loading" ? <div style={{ ...card, margin: "16px 5%", padding: 10, background: "#eff6ff", color: "#1d4ed8" }}>Loading marketplace...</div> : null}
               {fetchState === "error" ? <div style={{ ...card, margin: "16px 5%", padding: 10, background: "#fef2f2", color: "#b91c1c" }}>{fetchMsg || "Something went wrong loading this page."}</div> : null}
 
@@ -1977,16 +1976,7 @@ export default function Customer() {
                       <div
                         key={`${restaurant.id}-${dish.id}`}
                         onClick={() => loadMenu(restaurant)}
-                        style={{
-                          minWidth: 200,
-                          maxWidth: 220,
-                          cursor: "pointer",
-                          background: "#fff",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          overflow: "hidden",
-                          boxShadow: "0 4px 14px rgba(15,23,42,0.06)",
-                        }}
+                        className="w-full min-w-0 max-w-[min(100%,14rem)] shrink-0 cursor-pointer overflow-hidden rounded-[14px] border border-slate-200 bg-white shadow-sm"
                       >
                         <div style={{ height: 120, background: "#f1f5f9" }}>
                           {dish.photoUrl ? (
@@ -2019,7 +2009,7 @@ export default function Customer() {
                   <h2 style={{ fontSize: "clamp(20px, 5vw, 24px)", marginBottom: 12 }}>Best Offers for You</h2>
                   <div className="category-scroll" style={{ gap: 12 }}>
                     {availableCoupons.map((c) => (
-                      <div key={c.id || c.code} onClick={() => setCouponCode(c.code)} style={{ minWidth: 230, cursor: "pointer", background: "linear-gradient(135deg,#fff1f2,#ffe4e6)", border: "1px dashed #fb7185", borderRadius: 12, padding: 12 }}>
+                      <div key={c.id || c.code} onClick={() => setCouponCode(c.code)} className="min-w-0 shrink-0 cursor-pointer rounded-xl border border-dashed border-rose-300 bg-gradient-to-br from-rose-50 to-rose-100 p-3" style={{ minWidth: "min(100%, 14rem)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <h3 style={{ margin: 0, color: "#be123c", textTransform: "uppercase" }}>{c.code}</h3>
                           <span style={{ fontSize: 10, background: "#f43f5e", color: "#fff", borderRadius: 6, padding: "2px 6px", fontWeight: 700 }}>APPLY</span>
@@ -2037,8 +2027,8 @@ export default function Customer() {
                   <h2 style={{ fontSize: "clamp(20px, 5vw, 24px)", marginBottom: 12 }}>Restaurants</h2>
                   <div className="category-scroll" style={{ gap: 16 }}>
                     {topBrands.map((b) => (
-                      <div key={`brand-${b.id}`} style={{ minWidth: 90, textAlign: "center", cursor: "pointer" }} onClick={() => loadMenu(b)}>
-                        <img src={b.image} alt={b.name} className="category-img" style={{ width: 78, height: 78, border: "2px solid #fff", boxShadow: "0 8px 18px rgba(0,0,0,0.12)" }} />
+                      <div key={`brand-${b.id}`} className="min-w-[4.5rem] shrink-0 cursor-pointer text-center" onClick={() => loadMenu(b)}>
+                        <img src={b.image} alt={b.name} className="mx-auto h-[4.875rem] w-[4.875rem] rounded-full border-2 border-white object-cover shadow-md" />
                         <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 600, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.name}</p>
                       </div>
                     ))}
@@ -2253,7 +2243,7 @@ export default function Customer() {
                           {browseRestaurantsClosedNow.length}
                         </span>
                       </div>
-                      <p style={{ margin: 0, color: "#64748b", fontSize: 14, maxWidth: 720, lineHeight: 1.5 }}>
+                      <p className="max-w-full text-sm md:text-base" style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>
                         Tap to view menu, unavailable to order — opening hours are shown on the menu for planning ahead.
                       </p>
                       <div className="restaurant-grid" style={{ marginTop: 14 }}>
@@ -2428,8 +2418,8 @@ export default function Customer() {
         />
 
         <Route path="/login" element={
-          <div className="main-container" style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "70vh" }}>
-            <div style={{ width: "100%", maxWidth: 410, ...card, padding: 30 }}>
+          <div className="main-container flex min-h-[70vh] items-center justify-center">
+            <div className="w-full max-w-md" style={{ ...card, padding: 30 }}>
               <h2 style={{ marginTop: 0 }}>Login</h2>
               <p style={{ color: "#64748b" }}>Verify your mobile with OTP.</p>
               {loginStep === 1 ? (
@@ -2452,7 +2442,7 @@ export default function Customer() {
         } />
 
         <Route path="/menu" element={
-          <div className="main-container vyaharam-menu-route-wrap" style={{ paddingBottom: cart.length ? 112 : 0 }}>
+          <div className="main-container vyaharam-menu-route-wrap text-sm md:text-base" style={{ paddingBottom: cart.length ? 112 : 0 }}>
             <div className="vyaharam-menu-page">
             <button type="button" className="back-btn vyaharam-menu-back" onClick={() => navigate("/")}>← Back to home</button>
             <div className="vyaharam-menu-page-inner">
@@ -2569,14 +2559,14 @@ export default function Customer() {
                   const c = cart.find((x) => x.id === item.id && (x.portion || "FULL") === defaultPortion);
                   const showHalf = item.hasHalf && item.halfPrice != null && Number(item.halfPrice) > 0;
                   return (
-                    <div key={item.id} className="menu-card">
-                      <div style={{ flex: 1 }} className="min-w-0">
-                        <h3 className="mb-1 text-base font-extrabold text-slate-900 break-words" style={{ margin: "0 0 4px" }}>{item.name}</h3>
-                        <p className="text-sm font-bold" style={{ margin: "0 0 5px" }}>
+                    <div key={item.id} className="menu-card flex w-full items-start justify-between">
+                      <div className="min-w-0 flex-1 pr-3">
+                        <h3 className="mb-1 break-words text-sm font-extrabold text-slate-900 md:text-base" style={{ margin: "0 0 4px" }}>{item.name}</h3>
+                        <p className="text-sm font-bold md:text-base" style={{ margin: "0 0 5px" }}>
                           ₹{item.price || item.fullPrice || 0}
-                          {showHalf ? <span className="text-sm font-semibold text-slate-500"> · Half ₹{item.halfPrice}</span> : null}
+                          {showHalf ? <span className="text-sm font-semibold text-slate-500 md:text-base"> · Half ₹{item.halfPrice}</span> : null}
                         </p>
-                        <p className="text-sm text-slate-400 break-words" style={{ margin: 0 }}>{item.description || item.quantityText || "Prepared fresh with rich flavours."}</p>
+                        <p className="break-words text-xs text-slate-400 md:text-sm" style={{ margin: 0 }}>{item.description || item.quantityText || "Prepared fresh with rich flavours."}</p>
                         <div style={{ marginTop: 6 }}>{item.veg === false || item.isVeg === false ? <StatusChip value="NON-VEG" /> : <StatusChip value="VEG" />} {item.bestseller ? <StatusChip value="BESTSELLER" /> : null}</div>
                         {showHalf ? (
                           <div className="menu-portion-btns" style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -2600,21 +2590,33 @@ export default function Customer() {
                           </div>
                         ) : null}
                       </div>
-                      <div className="menu-image-container">
-                        <img src={item.photoUrl || item.image || PLACEHOLDER_MENU_IMG} alt={item.name} className="menu-img max-w-full w-full object-cover" />
+                      <div className="relative h-32 w-32 flex-shrink-0 overflow-visible">
+                        <img
+                          src={item.photoUrl || item.image || PLACEHOLDER_MENU_IMG}
+                          alt={item.name}
+                          className="menu-img h-full w-full max-w-full rounded-xl object-cover"
+                        />
                         {!showHalf ? (
                           !c ? (
                             isActiveMenuOutletAcceptingOrders ? (
-                              <button type="button" className="add-btn" onClick={() => addToCart(item)}>
+                              <button
+                                type="button"
+                                className="absolute -bottom-3 left-1/2 z-10 -translate-x-1/2 border border-gray-200 bg-white px-6 py-2 text-sm font-extrabold uppercase tracking-wide text-green-600 shadow-md rounded-lg"
+                                onClick={() => addToCart(item)}
+                              >
                                 ADD
                               </button>
                             ) : (
-                              <button type="button" className="add-btn" disabled style={{ opacity: 0.55, cursor: "not-allowed", filter: "grayscale(1)" }}>
+                              <button
+                                type="button"
+                                disabled
+                                className="absolute -bottom-3 left-1/2 z-10 -translate-x-1/2 cursor-not-allowed border border-gray-200 bg-white px-6 py-2 text-sm font-extrabold uppercase tracking-wide text-green-600 opacity-55 shadow-md rounded-lg grayscale"
+                              >
                                 CLOSED
                               </button>
                             )
                           ) : (
-                            <div className="menu-qty-pill" role="group" aria-label={`Quantity for ${item.name}`}>
+                            <div className="menu-qty-pill absolute -bottom-3 left-1/2 z-10 -translate-x-1/2" role="group" aria-label={`Quantity for ${item.name}`}>
                               <button type="button" aria-label="Remove one" onClick={() => decrement(item.id, defaultPortion)}>
                                 −
                               </button>
@@ -2836,7 +2838,7 @@ export default function Customer() {
         } />
 
         <Route path="/checkout" element={
-          <div className="main-container" style={{ maxWidth: 1240, margin: "auto", padding: "24px 5%" }}>
+          <div className="main-container py-6 text-sm md:text-base">
             <div className="checkout-top-bar">
               <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 <span className="brand">{APP_BRAND}.</span>
@@ -2861,8 +2863,8 @@ export default function Customer() {
                 Cart is empty. Add items to continue.
               </div>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-                <div style={{ display: "grid", gap: 14 }}>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+                <div className="grid gap-4">
                   <div style={{ ...card, padding: 14 }}>
                     <h3 style={{ marginTop: 0 }}>Delivery address</h3>
                     <p style={{ color: "#64748b", marginTop: -4, fontSize: 13 }}>Pick or add one</p>
@@ -2874,7 +2876,7 @@ export default function Customer() {
                         marginTop: 12,
                         marginBottom: 4,
                         width: "100%",
-                        maxWidth: 400,
+                        maxWidth: "100%",
                         padding: "14px 18px",
                         fontWeight: 800,
                         fontSize: 16,
@@ -2900,7 +2902,7 @@ export default function Customer() {
                         <SafeGoogleMapEmbed mapTitle="Delivery location" mapQuery={`${deliveryCoords.latitude},${deliveryCoords.longitude}`} />
                       </div>
                     ) : null}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {savedAddresses.map((a) => (
                         <div key={a.id} style={{ border: selectedAddressId === a.id ? "2px solid #10b981" : "1px solid #e2e8f0", borderRadius: 12, padding: 12 }}>
                           <strong>{a.label}</strong>
@@ -2943,7 +2945,7 @@ export default function Customer() {
                   </div>
                 </div>
 
-                <div style={{ ...card, padding: 14, height: "fit-content", position: "sticky", top: 118 }}>
+                <div className="md:sticky md:top-[118px]" style={{ ...card, padding: 14, height: "fit-content" }}>
                   <h3 style={{ marginTop: 0 }}>{activeRestName || "Order Summary"}</h3>
                   <div style={{ borderBottom: "1px dashed #e2e8f0", paddingBottom: 10, marginBottom: 10 }}>
                     {cart.map((i) => (
@@ -3034,7 +3036,7 @@ export default function Customer() {
         <Route path="/order-success" element={<OrderSuccessPane />} />
 
         <Route path="/my-orders" element={
-          <div className="main-container" style={{ maxWidth: 900, margin: "auto", padding: "30px 5%" }}>
+          <div className="main-container py-8 text-sm md:text-base">
             <div style={{ marginBottom: 20 }}>
               <h2 style={{ margin: 0 }}>My Orders</h2>
               <p style={{ margin: "8px 0 0", color: "#64748b", fontSize: 14 }}>
@@ -3117,13 +3119,12 @@ export default function Customer() {
         } />
 
         <Route path="/wallet" element={
-          <div className="main-container" style={{ maxWidth: 980, margin: "auto", padding: "30px 5%" }}>
+          <div className="main-container py-8 text-sm md:text-base">
             <h2 style={{ marginTop: 0 }}>Coupons &amp; wallet</h2>
             <p style={{ color: "#64748b" }}>Platform and restaurant-funded offers. Open the offer studio to browse and apply codes at checkout.</p>
             <button
               type="button"
-              className="checkout-btn"
-              style={{ marginTop: 12, marginBottom: 20, maxWidth: 360 }}
+              className="checkout-btn mb-5 mt-3 w-full max-w-sm"
               onClick={() => setCouponDrawerOpen(true)}
             >
               Open offer studio — apply coupons
@@ -3133,7 +3134,7 @@ export default function Customer() {
               {!availableCoupons.length ? (
                 <p style={{ color: "#94a3b8", margin: 0 }}>No active public coupons right now.</p>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 12 }}>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {availableCoupons.map((c) => (
                     <div key={c.id || c.code} style={{ border: "1px dashed #fda4af", borderRadius: 12, padding: 14, background: "#fff1f2" }}>
                       <div style={{ fontWeight: 900, color: "#be123c", fontSize: 18 }}>{c.code}</div>
@@ -3175,12 +3176,12 @@ export default function Customer() {
         } />
 
         <Route path="/support" element={
-          <div className="main-container" style={{ maxWidth: 1240, margin: "auto", padding: "26px 5%" }}>
+          <div className="main-container py-7 text-sm md:text-base">
             <div style={{ ...card, background: "#2d6a86", color: "#fff", padding: 14, marginBottom: 12 }}>
               <h2 style={{ margin: 0 }}>Help & Support</h2>
               <p style={{ margin: "4px 0 0", fontSize: 13, opacity: 0.9 }}>Let's take a step ahead and help you better.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 14 }}>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
               <div style={{ ...card, padding: 0, overflow: "hidden", height: "fit-content" }}>
                 {["Help with orders", "General issues", "Legal, Terms & Conditions", "FAQs", "Payment & Refunds", "Safety Emergency"].map((item) => (
                   <button
@@ -3205,7 +3206,7 @@ export default function Customer() {
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ ...card, padding: 14 }}>
                   <h3 style={{ marginTop: 0 }}>Raise Ticket</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 8 }}>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input placeholder="Issue title" value={newTicket.issue} onChange={(e) => setNewTicket((s) => ({ ...s, issue: e.target.value }))} />
                     <select value={newTicket.linkedOrderId} onChange={(e) => setNewTicket((s) => ({ ...s, linkedOrderId: e.target.value }))}>
                       <option value="">Select linked order</option>
@@ -3222,8 +3223,8 @@ export default function Customer() {
                     <p style={{ color: "#64748b" }}>No past orders available for support.</p>
                   ) : (
                     myOrders.slice(0, 6).map((o) => (
-                      <div key={o.id} style={{ borderBottom: "1px solid #f1f5f9", padding: "10px 0", display: "grid", gridTemplateColumns: "82px 1fr auto", gap: 10, alignItems: "center" }}>
-                        <img src={PLACEHOLDER_MENU_IMG} alt="" style={{ width: 82, height: 62, objectFit: "cover", borderRadius: 8 }} />
+                      <div key={o.id} className="flex flex-col gap-3 border-b border-slate-100 py-2.5 sm:grid sm:grid-cols-[minmax(0,5rem)_minmax(0,1fr)_auto] sm:items-center sm:gap-2.5">
+                        <img src={PLACEHOLDER_MENU_IMG} alt="" className="h-14 w-full max-w-[5rem] rounded-lg object-cover sm:h-16" />
                         <div>
                           <strong>{allRestaurants.find((r) => r.id === o.restaurantId)?.name || "Restaurant"}</strong>
                           <div style={{ fontSize: 12, color: "#64748b" }}>ORDER #{String(o.id).slice(-10).toUpperCase()} | {new Date(o.createdAt || Date.now()).toLocaleString()}</div>
@@ -3259,7 +3260,7 @@ export default function Customer() {
         <Route
           path="/notifications"
           element={
-            <div className="main-container" style={{ maxWidth: 720, margin: "auto", padding: "24px 5%" }}>
+            <div className="main-container py-6 text-sm md:text-base">
               <h2 style={{ marginTop: 0 }}>Order & delivery updates</h2>
               <p style={{ color: "#64748b" }}>Same live information is shared with the restaurant and rider for each order.</p>
               {!loggedInCustomer ? (
@@ -3295,7 +3296,7 @@ export default function Customer() {
         />
 
         <Route path="/profile" element={
-          <div className="main-container" style={{ maxWidth: 980, margin: "auto", padding: "30px 5%" }}>
+          <div className="main-container py-8 text-sm md:text-base">
             <h2>Account — Profile & Addresses</h2>
             <div style={{ ...card, padding: 14, marginBottom: 12 }}>
               <h3 style={{ marginTop: 0 }}>Saved Addresses</h3>
@@ -3306,7 +3307,7 @@ export default function Customer() {
                   <button onClick={() => setDeliveryAddress(a.text)}>Use</button>
                 </div>
               ))}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 8, marginTop: 10 }}>
+              <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_2fr_auto]">
                 <input placeholder="Label" value={newAddress.label} onChange={(e) => setNewAddress((s) => ({ ...s, label: e.target.value }))} />
                 <input placeholder="Address" value={newAddress.text} onChange={(e) => setNewAddress((s) => ({ ...s, text: e.target.value }))} />
                 <button onClick={addAddress}>Add</button>
@@ -3320,7 +3321,7 @@ export default function Customer() {
               {!loggedInCustomer ? (
                 <p style={{ color: "#64748b" }}>Log in to add bank details.</p>
               ) : (
-                <form onSubmit={saveRefundBank} style={{ display: "grid", gap: 10, maxWidth: 480 }}>
+                <form onSubmit={saveRefundBank} className="grid w-full max-w-lg gap-2.5">
                   <input
                     placeholder="Bank name"
                     value={refundBank.bankName}
@@ -3337,7 +3338,7 @@ export default function Customer() {
                     value={refundBank.ifsc}
                     onChange={(e) => setRefundBank((s) => ({ ...s, ifsc: e.target.value.toUpperCase() }))}
                   />
-                  <button type="submit" className="checkout-btn" disabled={bankSaveBusy} style={{ marginTop: 0, maxWidth: 220 }}>
+                  <button type="submit" className="checkout-btn mt-0 w-full max-w-xs" disabled={bankSaveBusy}>
                     {bankSaveBusy ? "Saving…" : "Save bank details"}
                   </button>
                 </form>

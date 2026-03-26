@@ -57,6 +57,7 @@ body {
   margin: 0;
   width: 100%;
   max-width: 100%;
+  overflow-x: hidden;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
