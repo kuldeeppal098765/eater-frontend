@@ -108,9 +108,66 @@ img {
 .main-container {
   width: 100%;
   max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
   overflow-x: hidden;
   word-break: break-word;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/** Fills #root under InstallApp so Partner/Admin get full width */
+.vyaharam-route-outlet {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/** Partner console — sidebar must not shrink (was collapsing with root overflow-wrap) */
+.partner-dashboard-root {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: stretch;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.partner-dashboard-aside {
+  flex: 0 0 270px;
+  width: 270px;
+  min-width: 240px;
+  max-width: 270px;
+  box-sizing: border-box;
+  border-right: 1px solid #e2e8f0;
+}
+
+.partner-dashboard-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+  .partner-dashboard-root {
+    flex-direction: column;
+  }
+
+  .partner-dashboard-aside {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: none;
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0;
+  }
 }
 
 .national-nav {
@@ -321,32 +378,62 @@ img {
 
 .restaurant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
   width: 100%;
+}
+
+@media (min-width: 1200px) {
+  .restaurant-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .rest-card {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid #e7edf5;
-  padding: 7px;
-  transition: transform 0.24s, box-shadow 0.24s, border-color 0.24s;
+  border: 1px solid #e8ecf1;
+  padding: 8px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .rest-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14);
-  border-color: #cbd5e1;
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+  border-color: #e2e8f0;
+}
+
+.vyaharam-rest-cta-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #ff5a5f 0%, #e23744 55%, #d62839 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(226, 55, 68, 0.25);
+}
+
+.vyaharam-rest-cta-btn:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 8px 22px rgba(226, 55, 68, 0.32);
 }
 
 .rest-img-container {
   width: 100%;
-  height: 144px;
-  border-radius: 10px;
+  height: 150px;
+  border-radius: 12px;
   overflow: hidden;
   position: relative;
+}
+
+@media (min-width: 768px) {
+  .rest-img-container {
+    height: 168px;
+  }
 }
 
 .rest-img {
@@ -418,42 +505,61 @@ img {
   white-space: nowrap;
 }
 
+/** Menu + cart: grid on desktop (Swiggy-like), stack on mobile */
 .customer-layout {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 10px 5%;
+  gap: 16px;
+  padding: 8px 0 20px;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (min-width: 992px) {
   .customer-layout {
-    flex-direction: row;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    gap: 28px;
+    align-items: start;
+    padding: 12px 0 28px;
   }
 }
 
 .menu-grid {
-  flex: 2;
   width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 992px) {
+  .menu-grid {
+    min-width: 0;
+  }
 }
 
 .cart-sidebar {
-  flex: 1;
   width: 100%;
-  position: sticky;
-  top: 118px;
-  align-self: flex-start;
-  max-height: calc(100vh - 100px);
+  position: relative;
+  top: auto;
+  align-self: stretch;
+  max-height: min(52vh, 480px);
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
   background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.07);
-  padding: 10px;
-  font-size: 13px;
+  border: 1px solid #e8ecf1;
+  border-radius: 16px;
+  box-shadow: 0 10px 32px rgba(15, 23, 42, 0.08);
+  padding: 14px;
+  font-size: 14px;
+}
+
+@media (min-width: 992px) {
+  .cart-sidebar {
+    position: sticky;
+    top: 100px;
+    max-height: calc(100vh - 112px);
+  }
 }
 
 .cart-sidebar-header {
@@ -519,13 +625,15 @@ img {
 
 .menu-card {
   background: #fff;
-  border-radius: 10px;
-  padding: 9px 10px;
+  border-radius: 14px;
+  padding: 12px 14px;
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
-  border: 1px solid #e2e8f0;
-  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  border: 1px solid #e8ecf1;
+  gap: 12px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
 }
 
 .menu-card h3 {
@@ -533,11 +641,18 @@ img {
 }
 
 .menu-image-container {
-  width: 88px;
-  height: 88px;
+  width: 96px;
+  height: 96px;
   position: relative;
   flex-shrink: 0;
   overflow: visible;
+}
+
+@media (min-width: 768px) {
+  .menu-image-container {
+    width: 108px;
+    height: 108px;
+  }
 }
 
 .menu-img {
@@ -905,7 +1020,7 @@ button:hover {
 
 .menu-sticky-cart-bar .inner {
   pointer-events: auto;
-  max-width: 520px;
+  max-width: min(520px, 100%);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -913,14 +1028,86 @@ button:hover {
   gap: 9px;
   background: #16a34a;
   color: #fff;
-  padding: 9px 14px;
-  border-radius: 11px;
+  padding: 11px 16px;
+  border-radius: 12px;
   box-shadow: 0 10px 26px rgba(22, 163, 74, 0.3);
   font-weight: 800;
   cursor: pointer;
   border: none;
   width: 100%;
-  font-size: 13px;
+  font-size: 14px;
+}
+
+/** Centered menu route + category jump FAB (mobile) */
+.vyaharam-menu-route-wrap {
+  width: 100%;
+}
+
+.vyaharam-menu-page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(10px, 3.5vw, 32px);
+  box-sizing: border-box;
+  position: relative;
+}
+
+.vyaharam-menu-back {
+  margin: 8px 0 12px;
+}
+
+.vyaharam-menu-page-inner {
+  width: 100%;
+}
+
+.vyaharam-menu-divider {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: #94a3b8;
+  margin: 16px 0 10px;
+}
+
+.vyaharam-menu-fab {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(108px, calc(env(safe-area-inset-bottom) + 96px));
+  z-index: 1100;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: none;
+  background: #0f172a;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.05;
+  padding: 8px 4px;
+}
+
+.vyaharam-menu-fab-icon {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+@media (min-width: 992px) {
+  .vyaharam-menu-fab {
+    display: none;
+  }
+
+  .menu-sticky-cart-bar {
+    display: none !important;
+  }
 }
 
 .vyaharam-payment-overlay {

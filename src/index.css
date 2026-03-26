@@ -55,6 +55,8 @@
 html,
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -79,19 +81,23 @@ img {
   max-width: 100%;
 }
 
+/**
+ * Full viewport width. Do NOT use overflow-wrap:anywhere here — it shrinks flex
+ * min-content to ~0 and collapses dashboards (e.g. Partner) to a narrow strip.
+ */
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
+  margin: 0;
+  text-align: start;
   border-inline: 1px solid var(--border);
+  box-sizing: border-box;
   min-height: 100svh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  align-items: stretch;
   overflow-x: hidden;
-  word-break: break-word;
-  overflow-wrap: anywhere;
 }
 
 h1,

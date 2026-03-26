@@ -1589,8 +1589,8 @@ export default function Partner() {
     Boolean(String(loggedInVendor?.partnerLastMessage || "").trim());
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc" }}>
-      <aside style={{ width: 270, background: "#fff", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
+    <div className="partner-dashboard-root" style={{ background: "#f8fafc" }}>
+      <aside className="partner-dashboard-aside" style={{ background: "#fff", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: 18, borderBottom: "1px solid #e2e8f0" }}>
           <h2 style={{ margin: 0 }}>Partner Console</h2>
           <small style={{ color: "#64748b" }}>{loggedInVendor?.name}</small>
@@ -1636,7 +1636,7 @@ export default function Partner() {
         </div>
       </aside>
 
-      <main style={{ flex: 1, padding: 18 }}>
+      <main className="partner-dashboard-main" style={{ padding: 18 }}>
         <div style={{ ...card, padding: 10, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <Chip value={loggedInVendor?.approvalStatus || "PENDING"} />

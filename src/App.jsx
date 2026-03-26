@@ -40,13 +40,15 @@ export default function App() {
     <Router>
       <DynamicManifestLink />
       <InstallApp />
-      <Routes>
-        <Route path="/admin/*" element={<Admin />} />
-        <Route path="/partner/*" element={<Partner />} />
-        <Route path="/restaurant/*" element={<Partner />} />
-        <Route path="/rider/*" element={<Rider />} />
-        <Route path="/*" element={<Customer />} />
-      </Routes>
+      <div className="vyaharam-route-outlet">
+        <Routes>
+          <Route path="/admin/*" element={<Admin />} />
+          <Route path="/partner/*" element={<Partner />} />
+          <Route path="/restaurant/*" element={<Partner />} />
+          <Route path="/rider/*" element={<Rider />} />
+          <Route path="/*" element={<Customer />} />
+        </Routes>
+      </div>
     </Router>
   );
 }

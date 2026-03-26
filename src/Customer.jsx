@@ -1533,14 +1533,34 @@ export default function Customer() {
     }
   }
 
+  const menuCategories = useMemo(() => {
+    const listed = menu.filter((x) => customerMenuDishIsListedForOrder(x));
+    const set = new Set();
+    for (const x of listed) {
+      const c = (x.category && String(x.category).trim()) || "General";
+      set.add(c);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [menu]);
+
   const menuFiltered = useMemo(() => {
     let m = menu.filter((x) => customerMenuDishIsListedForOrder(x));
-    if (activeCategory !== "ALL") m = m.filter((x) => x.name.toLowerCase().includes(activeCategory.toLowerCase()));
+    if (activeCategory !== "ALL") {
+      m = m.filter((x) => {
+        const c = (x.category && String(x.category).trim()) || "General";
+        return c === activeCategory;
+      });
+    }
     if (menuSearch.trim()) m = m.filter((x) => x.name.toLowerCase().includes(menuSearch.toLowerCase()));
     if (menuVegOnly) m = m.filter((x) => x.isVeg !== false && x.veg !== false);
     if (menuBestsellerOnly) m = m.filter((x) => x.bestseller);
     return m;
   }, [menu, activeCategory, menuSearch, menuVegOnly, menuBestsellerOnly]);
+
+  useEffect(() => {
+    if (activeCategory === "ALL") return;
+    if (!menuCategories.includes(activeCategory)) setActiveCategory("ALL");
+  }, [activeCategory, menuCategories]);
 
   const activeRestaurant = useMemo(
     () => allRestaurants.find((r) => String(r.id) === String(activeRestId)) || null,
@@ -2210,14 +2230,14 @@ export default function Customer() {
                               </div>
                               <button
                                 type="button"
-                                className="add-btn"
-                                style={{ marginTop: 8, width: "100%", justifyContent: "center" }}
+                                className="vyaharam-rest-cta-btn"
+                                style={{ marginTop: 8, width: "100%" }}
                                 onClick={(clickEvent) => {
                                   clickEvent.stopPropagation();
                                   loadMenu(restaurantRecord);
                                 }}
                               >
-                                ADD
+                                View menu
                               </button>
                             </div>
                           ))
@@ -2432,9 +2452,10 @@ export default function Customer() {
         } />
 
         <Route path="/menu" element={
-          <div className="main-container" style={{ paddingBottom: cart.length ? 112 : 0 }}>
-            <button type="button" className="back-btn" onClick={() => navigate("/")}>← Back to home</button>
-            <div style={{ padding: "0 5%" }}>
+          <div className="main-container vyaharam-menu-route-wrap" style={{ paddingBottom: cart.length ? 112 : 0 }}>
+            <div className="vyaharam-menu-page">
+            <button type="button" className="back-btn vyaharam-menu-back" onClick={() => navigate("/")}>← Back to home</button>
+            <div className="vyaharam-menu-page-inner">
               <div className="menu-page-hero">
                 <div className="menu-breadcrumb">
                   <button type="button" onClick={() => navigate("/")}>Home</button>
@@ -2513,8 +2534,9 @@ export default function Customer() {
                 </div>
               ) : null}
 
-              <div className="menu-search-sw">
-                <span style={{ fontSize: 18 }}>🔍</span>
+              <p className="vyaharam-menu-divider" aria-hidden>— MENU —</p>
+              <div className="menu-search-sw" id="vyaharam-menu-search">
+                <span style={{ fontSize: 18 }} aria-hidden>🔍</span>
                 <input placeholder="Search for dishes" value={menuSearch} onChange={(e) => setMenuSearch(e.target.value)} aria-label="Search menu" />
               </div>
               <div className="menu-filter-chips">
@@ -2528,13 +2550,20 @@ export default function Customer() {
             </div>
             <div className="customer-layout">
               <div className="menu-grid">
-                <div style={{ ...card, padding: 10, marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div id="vyaharam-menu-category" style={{ ...card, padding: 10, marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <span className="text-sm font-bold text-slate-500">Category</span>
-                  <select value={activeCategory} onChange={(e) => setActiveCategory(e.target.value)}>
-                    <option value="ALL">All Categories</option><option>Pizza</option><option>Burger</option><option>Biryani</option><option>Wrap</option>
+                  <select value={activeCategory} onChange={(e) => setActiveCategory(e.target.value)} aria-label="Menu category">
+                    <option value="ALL">All categories</option>
+                    {menuCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 800 }}>Recommended ({menuFiltered.length})</h3>
+                <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 800 }}>
+                  {activeCategory === "ALL" ? "Menu" : activeCategory} ({menuFiltered.length})
+                </h3>
                 {menuFiltered.map((item) => {
                   const defaultPortion = "FULL";
                   const c = cart.find((x) => x.id === item.id && (x.portion || "FULL") === defaultPortion);
@@ -2781,6 +2810,15 @@ export default function Customer() {
                 ) : null}
               </div>
             </div>
+            <button
+              type="button"
+              className="vyaharam-menu-fab"
+              onClick={() => document.getElementById("vyaharam-menu-category")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              aria-label="Jump to menu categories"
+            >
+              <span className="vyaharam-menu-fab-icon" aria-hidden>☰</span>
+              MENU
+            </button>
             {cart.length ? (
               <div className="menu-sticky-cart-bar">
                 <button
@@ -2793,6 +2831,7 @@ export default function Customer() {
                 </button>
               </div>
             ) : null}
+            </div>
           </div>
         } />
 
