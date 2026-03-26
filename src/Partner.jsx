@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "./App.css";
-import { API_URL, APP_BRAND } from "./apiConfig";
+import { io } from "socket.io-client";
+import { API_URL, APP_BRAND, getSocketUrl } from "./apiConfig";
 import { partnerBearerHeaders } from "./apiAuth";
 import { LS, localGetMigrated, localRemove, localSet, sessionGetDemoOtp, sessionRemoveDemoOtp, sessionSetDemoOtp } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
@@ -552,6 +553,28 @@ export default function Partner() {
     if (!loggedInVendor?.id) return;
     fetchMenu(loggedInVendor.id);
   }, [loggedInVendor?.id, fetchMenu]);
+
+  /** Real-time menu thumbnails after async DALL·E (bulk digitize background queue). */
+  useEffect(() => {
+    if (!loggedInVendor?.id) return undefined;
+    const socket = io(getSocketUrl(), {
+      path: "/socket.io/",
+      transports: ["websocket", "polling"],
+    });
+    socket.emit("join_partner_restaurant", { restaurantId: loggedInVendor.id });
+    socket.on("menuItemImageGenerated", (payload) => {
+      const itemId = payload?.itemId != null ? String(payload.itemId) : "";
+      const newImageUrl = payload?.newImageUrl != null ? String(payload.newImageUrl) : "";
+      if (!itemId || !newImageUrl) return;
+      setMenu((prev) =>
+        Array.isArray(prev) ? prev.map((d) => (d.id === itemId ? { ...d, photoUrl: newImageUrl } : d)) : prev,
+      );
+    });
+    return () => {
+      socket.off("menuItemImageGenerated");
+      socket.disconnect();
+    };
+  }, [loggedInVendor?.id]);
 
   useEffect(() => {
     setApiState("loading");
@@ -2060,7 +2083,8 @@ export default function Partner() {
                   ✨ AI Magic Menu Upload
                 </h3>
                 <p style={{ margin: "0 0 12px", color: "#6b21a8", fontSize: 13 }}>
-                  Upload multiple menu images, PDFs, or XML exports at once. Gemini extracts dishes and saves them to your menu (pending review).
+                  <strong>One file:</strong> fast GPT‑4o Vision + DALL·E images in the background (thumbnails update live).{" "}
+                  <strong>Multiple files:</strong> Gemini batch scan (no auto images). All items stay pending review until approved.
                 </p>
                 <input
                   ref={aiMagicMenuInputRef}
@@ -2098,10 +2122,16 @@ export default function Partner() {
                       try {
                         const fd = new FormData();
                         fd.append("restaurantId", String(loggedInVendor.id));
-                        for (const f of aiMagicMenuFiles) {
-                          fd.append("files", f);
+                        const multi = aiMagicMenuFiles.length > 1;
+                        if (!multi) {
+                          fd.append("file", aiMagicMenuFiles[0]);
+                        } else {
+                          for (const f of aiMagicMenuFiles) {
+                            fd.append("files", f);
+                          }
                         }
-                        const res = await fetch(`${API_URL}/menu/digitize-bulk`, {
+                        const url = multi ? `${API_URL}/menu/digitize-bulk` : `${API_URL}/partner/menu/bulk-digitize`;
+                        const res = await fetch(url, {
                           method: "POST",
                           headers: { ...partnerAuthHdr },
                           body: fd,
@@ -2166,9 +2196,15 @@ export default function Partner() {
                 {aiMagicMenuPhase === "scanning" ? (
                   <div style={{ marginTop: 14, padding: 12, borderRadius: 10, background: "#fff", border: "1px dashed #c4b5fd" }}>
                     <p style={{ margin: 0, fontWeight: 700, color: "#5b21b6" }}>
-                      Scanning {aiMagicMenuFiles.length} file{aiMagicMenuFiles.length === 1 ? "" : "s"} with Gemini…
+                      {aiMagicMenuFiles.length === 1
+                        ? "Extracting menu with AI (fast)…"
+                        : `Scanning ${aiMagicMenuFiles.length} files with Gemini…`}
                     </p>
-                    <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>This may take a minute for large PDFs or many images.</p>
+                    <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
+                      {aiMagicMenuFiles.length === 1
+                        ? "Items save first; dish photos may fill in over the next minute without refreshing."
+                        : "This may take a minute for large PDFs or many images."}
+                    </p>
                   </div>
                 ) : null}
                 {aiMagicMenuError ? (

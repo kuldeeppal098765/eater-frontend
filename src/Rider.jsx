@@ -6,7 +6,21 @@ import SafeGoogleMapEmbed from "./SafeGoogleMapEmbed";
 import { LS, localGetMigrated, localRemove, localSet } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
 import LiveChatWidget from "./components/LiveChatWidget";
+
 const MAX_KYC_FILE_BYTES = 6 * 1024 * 1024;
+
+/** Prevents hung fetch() from leaving OTP buttons stuck on "Sending…" / "Verifying…". */
+const FETCH_TIMEOUT_MS = 25000;
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
 
 const getPickupOTP = (id) => (String(id).replace(/\D/g, "") + "5678").slice(-4);
 const getDeliveryOTP = (id) => (String(id).replace(/\D/g, "") + "9876").slice(-4);
@@ -282,11 +296,13 @@ export default function Rider() {
       .catch(() => setNotifications([]));
   }, [loggedInRider?.id]);
 
+  /** Don’t poll rider-requests before login — avoids noisy 500s and wasted load on the API. */
   useEffect(() => {
+    if (!loggedInRider?.id) return undefined;
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [fetchOrders, loggedInRider?.id]);
 
   useEffect(() => {
     if (!loggedInRider?.id || !isApproved) return;
@@ -452,7 +468,7 @@ export default function Rider() {
     if (phone.length < 10) return alert("Valid 10-digit mobile required.");
     setRiderOtpBusy(true);
     try {
-      const res = await fetch(`${API_URL}/auth/send-otp`, {
+      const res = await fetchWithTimeout(`${API_URL}/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, role: "RIDER" }),
@@ -463,8 +479,12 @@ export default function Rider() {
         return;
       }
       setRiderOtpStep(2);
-    } catch {
-      alert("Network error.");
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        alert("Request timed out. Check your connection and try again.");
+      } else {
+        alert("Network error.");
+      }
     } finally {
       setRiderOtpBusy(false);
     }
@@ -480,7 +500,7 @@ export default function Rider() {
     }
     setRiderOtpBusy(true);
     try {
-      const res = await fetch(`${API_URL}/auth/verify-otp`, {
+      const res = await fetchWithTimeout(`${API_URL}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, otp: code, role: "RIDER" }),
@@ -502,8 +522,12 @@ export default function Rider() {
       setRiderLoginOtp("");
       if (r.approvalStatus !== "APPROVED" && r.approvalStatus !== "REJECTED") setActiveTab("VERIFY");
       else setActiveTab("LIVE");
-    } catch {
-      alert("Network error.");
+    } catch (err) {
+      if (err?.name === "AbortError") {
+        alert("Request timed out. Check your connection and try again.");
+      } else {
+        alert("Network error.");
+      }
     } finally {
       setRiderOtpBusy(false);
     }
