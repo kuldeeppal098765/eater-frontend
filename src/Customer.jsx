@@ -7,7 +7,6 @@ import SafeGoogleMapEmbed from "./SafeGoogleMapEmbed";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
-import InstallApp from "./InstallApp";
 import LiveChatWidget from "./components/LiveChatWidget";
 
 /** Hide dishes the partner marked unavailable (`isAvailable` / snake_case / `in_stock`). */
@@ -1785,7 +1784,6 @@ export default function Customer() {
         name={loggedInCustomer?.name || ""}
         phone={String(loggedInCustomer?.phone || "")}
       />
-      <InstallApp />
       {paymentProcessingOverlay ? (
         <div className="vyaharam-payment-overlay" role="status" aria-live="polite">
           <div className="vyaharam-payment-overlay-panel">

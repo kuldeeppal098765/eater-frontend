@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import InstallApp from "./InstallApp";
+import InstallBanner from "./InstallBanner";
 import Customer from "./Customer";
 import Partner from "./Partner";
 import Rider from "./Rider";
@@ -39,8 +39,8 @@ export default function App() {
   return (
     <Router>
       <DynamicManifestLink />
-      <InstallApp />
-      <div className="vyaharam-route-outlet min-w-0 overflow-x-hidden">
+      <InstallBanner />
+      <div className="vyaharam-route-outlet min-h-screen min-w-0 overflow-x-hidden">
         <Routes>
           <Route path="/admin/*" element={<Admin />} />
           <Route path="/partner/*" element={<Partner />} />

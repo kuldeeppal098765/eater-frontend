@@ -121,12 +121,11 @@ img {
   overflow-wrap: break-word;
 }
 
-/** Fills #root under InstallApp so Partner/Admin get full width */
+/** Route shell: grow with page content so the document scrolls vertically (no flex min-height trap). */
 .vyaharam-route-outlet {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }

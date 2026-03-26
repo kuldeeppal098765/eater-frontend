@@ -99,6 +99,7 @@ img {
   flex-direction: column;
   align-items: stretch;
   overflow-x: hidden;
+  /* No overflow-y or max-height — page scrolls on the document */
 }
 
 h1,
