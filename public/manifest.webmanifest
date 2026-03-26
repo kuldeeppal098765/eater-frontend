@@ -1,8 +1,9 @@
 {
+  "id": "vyaharam-customer",
   "name": "Vyaharam",
   "short_name": "Vyaharam",
   "description": "Order food online",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

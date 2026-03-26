@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "./App.css";
 import { API_URL, APP_BRAND } from "./apiConfig";
 import { partnerBearerHeaders } from "./apiAuth";
@@ -371,20 +371,22 @@ export default function Partner() {
   const [loggedInVendor, setLoggedInVendor] = useState(persistedPartnerVendor);
 
   const partnerAuthHdr = useMemo(() => partnerBearerHeaders(loggedInVendor?.accessToken), [loggedInVendor?.accessToken]);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryTab = searchParams.get("tab");
+
+  const pathSegment = useMemo(() => {
+    const m = location.pathname.match(/^\/(?:partner|restaurant)\/([^/]+)\/?$/);
+    return m ? decodeURIComponent(m[1]) : null;
+  }, [location.pathname]);
 
   const goPartnerTab = useCallback(
     (id) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("tab", id);
-          return next;
-        },
-        { replace: true },
-      );
+      const base = location.pathname.startsWith("/restaurant") ? "/restaurant" : "/partner";
+      navigate(`${base}/${encodeURIComponent(id)}`, { replace: true });
     },
-    [setSearchParams],
+    [navigate, location.pathname],
   );
 
   const [restaurantsList, setRestaurantsList] = useState([]);
@@ -476,14 +478,9 @@ export default function Partner() {
     }
     setPartnerOtpStep(1);
     setPartnerOtp("");
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set("tab", data.approvalStatus !== "APPROVED" ? "registration" : "orders");
-        return next;
-      },
-      { replace: true },
-    );
+    const nextTab = data.approvalStatus !== "APPROVED" ? "registration" : "orders";
+    const base = location.pathname.startsWith("/restaurant") ? "/restaurant" : "/partner";
+    navigate(`${base}/${nextTab}`, { replace: true });
   }
 
   /** Offline demo OTP cannot issue a server token; partner APIs now require a real login. */
@@ -628,25 +625,40 @@ export default function Partner() {
         ? "Verification pending"
         : loggedInVendor?.approvalStatus || "";
 
-  const allowedPartnerTabSet = isOnboarding ? PARTNER_TABS_ONBOARD : PARTNER_TABS_LIVE;
   const defaultPartnerTab = isOnboarding ? "registration" : "orders";
-  const tabFromUrl = searchParams.get("tab");
-  const activeTab = allowedPartnerTabSet.has(tabFromUrl) ? tabFromUrl : defaultPartnerTab;
+  const activeTab = useMemo(() => {
+    const allowed = isOnboarding ? PARTNER_TABS_ONBOARD : PARTNER_TABS_LIVE;
+    if (pathSegment && allowed.has(pathSegment)) return pathSegment;
+    if (allowed.has(queryTab)) return queryTab;
+    return defaultPartnerTab;
+  }, [pathSegment, queryTab, isOnboarding, defaultPartnerTab]);
 
+  /** Canonicalize `/partner` → `/partner/<tab>` and fix invalid segments (SPA + hard refresh). */
   useEffect(() => {
     if (!auth.loggedIn || !loggedInVendor) return;
-    const t = searchParams.get("tab");
-    if (!allowedPartnerTabSet.has(t)) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("tab", defaultPartnerTab);
-          return next;
-        },
-        { replace: true },
-      );
+    const allowed = isOnboarding ? PARTNER_TABS_ONBOARD : PARTNER_TABS_LIVE;
+    const base = location.pathname.startsWith("/restaurant") ? "/restaurant" : "/partner";
+    const isRoot = /^\/(?:partner|restaurant)\/?$/.test(location.pathname);
+
+    if (!isRoot) {
+      if (pathSegment && !allowed.has(pathSegment)) {
+        navigate(`${base}/${defaultPartnerTab}`, { replace: true });
+      }
+      return;
     }
-  }, [auth.loggedIn, loggedInVendor, isOnboarding, searchParams, setSearchParams, allowedPartnerTabSet, defaultPartnerTab]);
+
+    const target = allowed.has(queryTab) ? queryTab : defaultPartnerTab;
+    navigate(`${base}/${target}`, { replace: true });
+  }, [
+    auth.loggedIn,
+    loggedInVendor,
+    isOnboarding,
+    location.pathname,
+    pathSegment,
+    queryTab,
+    defaultPartnerTab,
+    navigate,
+  ]);
 
   async function refreshPartnerRestaurant() {
     if (!loggedInVendor?.phone) return;

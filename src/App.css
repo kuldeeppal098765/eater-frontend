@@ -6,7 +6,9 @@
 
 html {
   font-size: 14px;
+  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   touch-action: manipulation;
 }
 
@@ -17,14 +19,20 @@ body {
   line-height: 1.45;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   color: #0f172a;
+  overscroll-behavior-y: none;
   user-select: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
 }
 
 input,
-textarea,
+textarea {
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
 select,
 [contenteditable="true"] {
   user-select: text;

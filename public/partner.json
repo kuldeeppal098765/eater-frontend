@@ -1,9 +1,10 @@
 {
+  "id": "vyaharam-partner",
   "name": "Vyaharam Partner",
   "short_name": "Vyaharam Partner",
   "description": "Vyaharam restaurant partner console",
-  "start_url": "/partner",
-  "scope": "/",
+  "start_url": "/partner/?source=pwa",
+  "scope": "/partner/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",

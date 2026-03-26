@@ -1,9 +1,10 @@
 {
+  "id": "vyaharam-rider",
   "name": "Vyaharam Rider",
   "short_name": "Vyaharam Rider",
   "description": "Vyaharam delivery partner",
-  "start_url": "/rider",
-  "scope": "/",
+  "start_url": "/rider/?source=pwa",
+  "scope": "/rider/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
