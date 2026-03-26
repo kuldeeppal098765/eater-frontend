@@ -58,8 +58,8 @@ export default function InstallApp() {
       }}
     >
       <div>
-        <p style={{ margin: "0 0 3px 0", fontWeight: "bold", fontSize: "14px" }}>Get the VYAHARAM app 🚀</p>
-        <p style={{ margin: 0, fontSize: "11px", color: "#cbd5e1" }}>For a better and faster experience</p>
+        <p className="text-sm font-bold" style={{ margin: "0 0 3px 0" }}>Get the VYAHARAM app 🚀</p>
+        <p className="text-sm text-slate-300" style={{ margin: 0 }}>For a better and faster experience</p>
       </div>
       <button
         type="button"

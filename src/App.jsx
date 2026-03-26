@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import InstallApp from "./InstallApp";
+import PwaManifestRouteSync from "./components/PwaManifestRouteSync";
 import Customer from "./Customer";
 import Partner from "./Partner";
 import Rider from "./Rider";
@@ -9,6 +10,7 @@ import "./App.css";
 export default function App() {
   return (
     <Router>
+      <PwaManifestRouteSync />
       <InstallApp />
       <Routes>
         {/* Admin routes first (narrow paths before customer `/*`). */}

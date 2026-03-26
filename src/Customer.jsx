@@ -1008,7 +1008,9 @@ export default function Customer() {
           const res = await fetch(`${API_URL}/menu/${r.id}`);
           const data = await res.json();
           const arr = Array.isArray(data) ? data : [];
-          const rows = arr.filter((d) => (d.menuReviewStatus || "APPROVED") === "APPROVED").slice(0, 3);
+          const rows = arr
+            .filter((d) => (d.menuReviewStatus || "APPROVED") === "APPROVED" && d.isAvailable !== false)
+            .slice(0, 3);
           for (const d of rows) {
             acc.push({ dish: d, restaurant: r });
           }
@@ -1521,7 +1523,7 @@ export default function Customer() {
   }
 
   const menuFiltered = useMemo(() => {
-    let m = menu;
+    let m = menu.filter((x) => x.isAvailable !== false);
     if (activeCategory !== "ALL") m = m.filter((x) => x.name.toLowerCase().includes(activeCategory.toLowerCase()));
     if (menuSearch.trim()) m = m.filter((x) => x.name.toLowerCase().includes(menuSearch.toLowerCase()));
     if (menuVegOnly) m = m.filter((x) => x.isVeg !== false && x.veg !== false);
@@ -2516,7 +2518,7 @@ export default function Customer() {
             <div className="customer-layout">
               <div className="menu-grid">
                 <div style={{ ...card, padding: 10, marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Category</span>
+                  <span className="text-sm font-bold text-slate-500">Category</span>
                   <select value={activeCategory} onChange={(e) => setActiveCategory(e.target.value)}>
                     <option value="ALL">All Categories</option><option>Pizza</option><option>Burger</option><option>Biryani</option><option>Wrap</option>
                   </select>
@@ -2528,38 +2530,38 @@ export default function Customer() {
                   const showHalf = item.hasHalf && item.halfPrice != null && Number(item.halfPrice) > 0;
                   return (
                     <div key={item.id} className="menu-card">
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 800 }}>{item.name}</h3>
-                        <p style={{ margin: "0 0 5px", fontWeight: 700 }}>
+                      <div style={{ flex: 1 }} className="min-w-0">
+                        <h3 className="mb-1 text-base font-extrabold text-slate-900 break-words" style={{ margin: "0 0 4px" }}>{item.name}</h3>
+                        <p className="text-sm font-bold" style={{ margin: "0 0 5px" }}>
                           ₹{item.price || item.fullPrice || 0}
-                          {showHalf ? <span style={{ color: "#64748b", fontWeight: 600, fontSize: 13 }}> · Half ₹{item.halfPrice}</span> : null}
+                          {showHalf ? <span className="text-sm font-semibold text-slate-500"> · Half ₹{item.halfPrice}</span> : null}
                         </p>
-                        <p style={{ margin: 0, color: "#94a3b8", fontSize: 13 }}>{item.description || item.quantityText || "Prepared fresh with rich flavours."}</p>
+                        <p className="text-sm text-slate-400 break-words" style={{ margin: 0 }}>{item.description || item.quantityText || "Prepared fresh with rich flavours."}</p>
                         <div style={{ marginTop: 6 }}>{item.veg === false || item.isVeg === false ? <StatusChip value="NON-VEG" /> : <StatusChip value="VEG" />} {item.bestseller ? <StatusChip value="BESTSELLER" /> : null}</div>
                         {showHalf ? (
                           <div className="menu-portion-btns" style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
                             {isActiveMenuOutletAcceptingOrders ? (
                               <>
-                                <button type="button" className="add-btn" style={{ fontSize: 12, padding: "6px 10px" }} onClick={() => addToCart({ ...item, portion: "FULL" })}>
+                                <button type="button" className="add-btn text-sm" style={{ padding: "6px 10px" }} onClick={() => addToCart({ ...item, portion: "FULL" })}>
                                   Full
                                 </button>
                                 <button
                                   type="button"
-                                  className="add-btn"
-                                  style={{ fontSize: 12, padding: "6px 10px", background: "#f1f5f9", color: "#0f172a" }}
+                                  className="add-btn text-sm"
+                                  style={{ padding: "6px 10px", background: "#f1f5f9", color: "#0f172a" }}
                                   onClick={() => addToCart({ ...item, portion: "HALF", unitPrice: item.halfPrice, price: item.halfPrice })}
                                 >
                                   Half
                                 </button>
                               </>
                             ) : (
-                              <span style={{ fontSize: 12, fontWeight: 800, color: "#a8a29e" }}>CLOSED — view timings only</span>
+                              <span className="text-sm font-extrabold text-stone-400">CLOSED — view timings only</span>
                             )}
                           </div>
                         ) : null}
                       </div>
                       <div className="menu-image-container">
-                        <img src={item.photoUrl || item.image || PLACEHOLDER_MENU_IMG} alt={item.name} className="menu-img" />
+                        <img src={item.photoUrl || item.image || PLACEHOLDER_MENU_IMG} alt={item.name} className="menu-img max-w-full w-full object-cover" />
                         {!showHalf ? (
                           !c ? (
                             isActiveMenuOutletAcceptingOrders ? (

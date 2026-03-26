@@ -26,26 +26,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'fresto-icon.svg', 'apple-touch-icon.png', 'mask-icon.svg'],
-      manifest: {
-        name: 'VYAHARAM',
-        short_name: 'VYAHARAM',
-        description: 'Your favorite food delivery app',
-        theme_color: '#ea580c',
-        background_color: '#ffffff',
-        display: 'standalone',
-        icons: [
-          {
-            src: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ]
-      }
+      /** Role-specific manifests live in `public/manifest-*.json`; switched at runtime via `PwaManifestRouteSync`. */
+      manifest: false,
     })
   ]
 })

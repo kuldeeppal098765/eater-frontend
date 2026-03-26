@@ -129,7 +129,14 @@ function DishThumb({ url, alt }) {
       </div>
     );
   }
-  return <img src={src} alt={alt || "Dish"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 8 }} />;
+  return (
+    <img
+      src={src}
+      alt={alt || "Dish"}
+      className="h-full w-full max-w-full object-cover"
+      style={{ borderRadius: 8 }}
+    />
+  );
 }
 
 const card = {
@@ -152,8 +159,15 @@ function Chip({ value }) {
   } else if (["PENDING", "PREPARING", "INFO_NEEDED", "OUT_FOR_DELIVERY"].includes(v)) {
     bg = "#fef3c7";
     color = "#92400e";
+  } else if (v.includes("OUT") && v.includes("STOCK")) {
+    bg = "#e2e8f0";
+    color = "#334155";
   }
-  return <span style={{ background: bg, color, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>{value}</span>;
+  return (
+    <span className="inline-block rounded-full px-2.5 py-1 text-sm font-bold break-words" style={{ background: bg, color }}>
+      {value}
+    </span>
+  );
 }
 
 function Kpis({ items }) {
@@ -359,6 +373,7 @@ export default function Partner() {
   /** Full restaurant order list (all payment states) for history / reporting */
   const [historyOrdersRaw, setHistoryOrdersRaw] = useState([]);
   const [menu, setMenu] = useState([]);
+  const [menuAvailBusyId, setMenuAvailBusyId] = useState(null);
   const [apiState, setApiState] = useState("idle");
 
   const [activeTab, setActiveTab] = useState("orders");
@@ -949,8 +964,9 @@ export default function Partner() {
     }
   }
 
-  async function deleteItem(itemId) {
-    if (!window.confirm("Delete this dish?")) return;
+  async function deleteItem(itemId, itemName) {
+    const label = String(itemName || "this dish").trim() || "this dish";
+    if (!window.confirm(`Remove "${label}" from your menu? This cannot be undone.`)) return;
     if (!loggedInVendor?.id) return;
     const res = await fetch(
       `${API_URL}/menu/${itemId}?restaurantId=${encodeURIComponent(loggedInVendor.id)}`,
@@ -962,6 +978,31 @@ export default function Partner() {
       return;
     }
     fetchMenu(loggedInVendor.id);
+  }
+
+  async function setMenuItemAvailable(dish, nextAvailable) {
+    if (!loggedInVendor?.id || !dish?.id) return;
+    setMenuAvailBusyId(dish.id);
+    try {
+      const res = await fetch(`${API_URL}/menu/${dish.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", ...partnerAuthHdr },
+        body: JSON.stringify({
+          restaurantId: loggedInVendor.id,
+          isAvailable: Boolean(nextAvailable),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(typeof json.error === "string" ? json.error : "Could not update stock status.");
+        return;
+      }
+      await fetchMenu(loggedInVendor.id);
+    } catch {
+      alert("Network error while updating dish.");
+    } finally {
+      setMenuAvailBusyId(null);
+    }
   }
 
   async function updateOrderStatus(orderId, status) {
@@ -2117,26 +2158,56 @@ export default function Partner() {
               <div style={{ ...card, padding: 14 }}>
                 <h3 style={{ marginTop: 0 }}>Current Menu ({menu.length})</h3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 10 }}>
-                  {!menu.length ? <p style={{ color: "#64748b" }}>No dishes added yet.</p> : menu.map((dish) => (
-                    <div key={dish.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 8 }}>
-                      <div style={{ width: 70, height: 70, borderRadius: 8, overflow: "hidden" }}>
+                  {!menu.length ? <p className="text-sm text-slate-500">No dishes added yet.</p> : menu.map((dish) => {
+                    const inStock = dish.isAvailable !== false;
+                    const availBusy = menuAvailBusyId === dish.id;
+                    return (
+                    <div key={dish.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, display: "grid", gridTemplateColumns: "70px 1fr auto", gap: 8, alignItems: "start" }}>
+                      <div style={{ width: 70, height: 70, borderRadius: 8, overflow: "hidden" }} className="max-w-full">
                         <DishThumb url={dish.photoUrl} alt={dish.name} />
                       </div>
-                      <div>
-                        <strong>{dish.name}</strong>
-                        <div style={{ fontSize: 12, color: "#64748b" }}>{dish.description || "No description"}</div>
-                        <div style={{ fontSize: 13, marginTop: 4 }}>₹{dish.fullPrice} {dish.halfPrice ? `| Half ₹${dish.halfPrice}` : ""}</div>
-                        <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <div className="min-w-0 text-sm break-words">
+                        <strong className="text-base text-slate-900">{dish.name}</strong>
+                        <div className="mt-0.5 text-sm text-slate-500 break-words">{dish.description || "No description"}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-800">₹{dish.fullPrice} {dish.halfPrice ? `· Half ₹${dish.halfPrice}` : ""}</div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
                           <Chip value={dish.isVeg ? "VEG" : "NON-VEG"} />
                           <Chip value={(dish.menuReviewStatus || "APPROVED") === "PENDING" ? "MENU PENDING REVIEW" : "MENU APPROVED"} />
+                          {!inStock ? <Chip value="OUT OF STOCK" /> : null}
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={inStock}
+                            aria-busy={availBusy}
+                            disabled={availBusy}
+                            className="partner-menu-stock-toggle"
+                            onClick={() => setMenuItemAvailable(dish, !inStock)}
+                          />
+                          <span className="text-sm font-semibold text-slate-600">{inStock ? "In stock" : "Out of stock"}</span>
                         </div>
                       </div>
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <button onClick={() => startEditing(dish)}>Edit</button>
-                        <button onClick={() => deleteItem(dish.id)} style={{ color: "#b91c1c", borderColor: "#fecaca", background: "#fef2f2" }}>Delete</button>
+                      <div className="flex flex-col gap-2">
+                        <button type="button" className="text-sm font-semibold" onClick={() => startEditing(dish)}>Edit</button>
+                        <button
+                          type="button"
+                          className="partner-menu-delete-btn"
+                          title="Delete dish"
+                          aria-label={`Delete ${dish.name || "dish"}`}
+                          onClick={() => deleteItem(dish.id, dish.name)}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </Section>

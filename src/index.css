@@ -54,6 +54,22 @@
 
 body {
   margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+img {
+  max-width: 100%;
 }
 
 #root {
