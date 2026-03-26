@@ -163,3 +163,25 @@ code {
   padding: 3px 6px;
   background: var(--code-bg);
 }
+
+/* ==========================================
+   NUCLEAR SCROLL FIX (Force Native Scrolling)
+   ========================================== */
+   html, body, #root {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y auto !important; /* Forces single-finger vertical scroll */
+  }
+  
+  /* Fix for iOS smooth momentum scrolling */
+  * {
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  /* Prevent modals/banners from blocking touch events accidentally */
+  .pointer-events-none-overlay {
+    pointer-events: none !important;
+  }
