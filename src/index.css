@@ -56,11 +56,14 @@ html {
   margin: 0;
   width: 100%;
   max-width: 100%;
+  height: auto;
+  min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  touch-action: pan-y;
+  /* `auto` = native single-finger pan + scroll (invalid `pan-y auto` breaks parsing) */
+  touch-action: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
@@ -71,11 +74,13 @@ body {
   margin: 0;
   width: 100%;
   max-width: 100%;
+  height: auto;
+  min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  touch-action: pan-y;
+  touch-action: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
@@ -111,13 +116,13 @@ img {
   box-sizing: border-box;
   min-height: 100svh;
   min-height: 100dvh;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   overflow-x: hidden;
   overflow-y: visible;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+  touch-action: auto;
 }
 
 h1,
@@ -163,25 +168,3 @@ code {
   padding: 3px 6px;
   background: var(--code-bg);
 }
-
-/* ==========================================
-   NUCLEAR SCROLL FIX (Force Native Scrolling)
-   ========================================== */
-   html, body, #root {
-    height: auto !important;
-    min-height: 100vh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    overscroll-behavior-y: auto !important;
-    touch-action: pan-y auto !important; /* Forces single-finger vertical scroll */
-  }
-  
-  /* Fix for iOS smooth momentum scrolling */
-  * {
-    -webkit-overflow-scrolling: touch !important;
-  }
-  
-  /* Prevent modals/banners from blocking touch events accidentally */
-  .pointer-events-none-overlay {
-    pointer-events: none !important;
-  }
