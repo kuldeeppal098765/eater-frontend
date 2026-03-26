@@ -1,0 +1,19 @@
+{
+  "name": "Vyaharam Partner",
+  "short_name": "Vyaharam Partner",
+  "description": "Vyaharam restaurant partner console",
+  "start_url": "/partner",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#43A047",
+  "icons": [
+    {
+      "src": "/icon-partner.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

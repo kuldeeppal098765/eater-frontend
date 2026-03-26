@@ -17,9 +17,9 @@ body {
   line-height: 1.45;
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   color: #0f172a;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
   user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
 }
 
@@ -99,6 +99,10 @@ img {
 
 .main-container {
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .national-nav {

@@ -25,8 +25,21 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'fresto-icon.svg', 'apple-touch-icon.png', 'mask-icon.svg'],
-      /** Role-specific manifests live in `public/manifest-*.json`; switched at runtime via `PwaManifestRouteSync`. */
+      includeAssets: [
+        'favicon.ico',
+        'fresto-icon.svg',
+        'apple-touch-icon.png',
+        'mask-icon.svg',
+        'manifest.webmanifest',
+        'admin.json',
+        'partner.json',
+        'rider.json',
+        'icon-customer.png',
+        'icon-partner.png',
+        'icon-rider.png',
+        'icon-admin.png',
+      ],
+      /** Role-specific manifests in `public/`; `App.jsx` swaps `<link id="dynamic-manifest">` by pathname. */
       manifest: false,
     })
   ]

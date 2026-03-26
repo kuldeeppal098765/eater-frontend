@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./App.css";
 import { API_URL, APP_BRAND } from "./apiConfig";
 import { partnerBearerHeaders } from "./apiAuth";
@@ -11,6 +12,9 @@ const MAX_KYC_FILE_BYTES = 6 * 1024 * 1024;
 const PARTNER_PLATFORM_FEE_RATE = 0.15;
 const RESTAURANT_NET_RATE = 1 - PARTNER_PLATFORM_FEE_RATE;
 const SETTLEMENT_CYCLE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const PARTNER_TABS_ONBOARD = new Set(["registration", "menu", "outlet"]);
+const PARTNER_TABS_LIVE = new Set(["orders", "menu", "history", "reporting", "finance", "offers", "outlet"]);
 
 /** Rule 8 — icon hint per bulk AI upload file */
 function aiMagicMenuFileIcon(file) {
@@ -117,7 +121,7 @@ function DishThumb({ url, alt }) {
           background: "#f1f5f9",
           display: "grid",
           placeItems: "center",
-          fontSize: 10,
+          fontSize: 14,
           color: "#94a3b8",
           fontWeight: 700,
           textAlign: "center",
@@ -367,6 +371,21 @@ export default function Partner() {
   const [loggedInVendor, setLoggedInVendor] = useState(persistedPartnerVendor);
 
   const partnerAuthHdr = useMemo(() => partnerBearerHeaders(loggedInVendor?.accessToken), [loggedInVendor?.accessToken]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const goPartnerTab = useCallback(
+    (id) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("tab", id);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const [restaurantsList, setRestaurantsList] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -376,7 +395,6 @@ export default function Partner() {
   const [menuAvailBusyId, setMenuAvailBusyId] = useState(null);
   const [apiState, setApiState] = useState("idle");
 
-  const [activeTab, setActiveTab] = useState("orders");
   const [liveOrderTab, setLiveOrderTab] = useState("preparing");
   const [isOnline, setIsOnline] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -458,8 +476,14 @@ export default function Partner() {
     }
     setPartnerOtpStep(1);
     setPartnerOtp("");
-    if (data.approvalStatus !== "APPROVED") setActiveTab("registration");
-    else setActiveTab("orders");
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", data.approvalStatus !== "APPROVED" ? "registration" : "orders");
+        return next;
+      },
+      { replace: true },
+    );
   }
 
   /** Offline demo OTP cannot issue a server token; partner APIs now require a real login. */
@@ -603,6 +627,26 @@ export default function Partner() {
       : loggedInVendor?.approvalStatus === "PENDING"
         ? "Verification pending"
         : loggedInVendor?.approvalStatus || "";
+
+  const allowedPartnerTabSet = isOnboarding ? PARTNER_TABS_ONBOARD : PARTNER_TABS_LIVE;
+  const defaultPartnerTab = isOnboarding ? "registration" : "orders";
+  const tabFromUrl = searchParams.get("tab");
+  const activeTab = allowedPartnerTabSet.has(tabFromUrl) ? tabFromUrl : defaultPartnerTab;
+
+  useEffect(() => {
+    if (!auth.loggedIn || !loggedInVendor) return;
+    const t = searchParams.get("tab");
+    if (!allowedPartnerTabSet.has(t)) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("tab", defaultPartnerTab);
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [auth.loggedIn, loggedInVendor, isOnboarding, searchParams, setSearchParams, allowedPartnerTabSet, defaultPartnerTab]);
 
   async function refreshPartnerRestaurant() {
     if (!loggedInVendor?.phone) return;
@@ -1545,7 +1589,7 @@ export default function Partner() {
           ).map(([id, label]) => (
             <button
               key={id}
-              onClick={() => setActiveTab(id)}
+              onClick={() => goPartnerTab(id)}
               style={{
                 textAlign: "left",
                 border: "none",

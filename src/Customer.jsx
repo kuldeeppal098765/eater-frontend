@@ -10,6 +10,14 @@ import { OTP_CODE_LENGTH } from "./otpConfig";
 import InstallApp from "./InstallApp";
 import LiveChatWidget from "./components/LiveChatWidget";
 
+/** Hide dishes the partner marked unavailable (`isAvailable` / snake_case / `in_stock`). */
+function customerMenuDishIsListedForOrder(d) {
+  if (!d || typeof d !== "object") return false;
+  if (d.is_available === false || d.isAvailable === false || d.in_stock === false) return false;
+  if (d.is_available === 0 || d.in_stock === 0) return false;
+  return true;
+}
+
 function buildCheckoutFingerprint(cart, restaurantId, finalTotal) {
   const lines = cart
     .map((i) => `${String(i.id)}::${i.portion || "FULL"}::${i.quantity}`)
@@ -1009,7 +1017,10 @@ export default function Customer() {
           const data = await res.json();
           const arr = Array.isArray(data) ? data : [];
           const rows = arr
-            .filter((d) => (d.menuReviewStatus || "APPROVED") === "APPROVED" && d.isAvailable !== false)
+            .filter(
+              (d) =>
+                (d.menuReviewStatus || "APPROVED") === "APPROVED" && customerMenuDishIsListedForOrder(d),
+            )
             .slice(0, 3);
           for (const d of rows) {
             acc.push({ dish: d, restaurant: r });
@@ -1523,7 +1534,7 @@ export default function Customer() {
   }
 
   const menuFiltered = useMemo(() => {
-    let m = menu.filter((x) => x.isAvailable !== false);
+    let m = menu.filter((x) => customerMenuDishIsListedForOrder(x));
     if (activeCategory !== "ALL") m = m.filter((x) => x.name.toLowerCase().includes(activeCategory.toLowerCase()));
     if (menuSearch.trim()) m = m.filter((x) => x.name.toLowerCase().includes(menuSearch.toLowerCase()));
     if (menuVegOnly) m = m.filter((x) => x.isVeg !== false && x.veg !== false);

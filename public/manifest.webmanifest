@@ -1,0 +1,19 @@
+{
+  "name": "Vyaharam",
+  "short_name": "Vyaharam",
+  "description": "Order food online",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#FF7043",
+  "icons": [
+    {
+      "src": "/icon-customer.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
