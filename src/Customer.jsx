@@ -3,7 +3,7 @@ import { Link, Route, Routes, useLocation, useNavigate, useSearchParams } from "
 import "./App.css";
 
 import { API_URL, APP_BRAND } from "./apiConfig";
-import SafeGoogleMapEmbed from "./SafeGoogleMapEmbed";
+import LiveMap from "./components/Shared/LiveMap.jsx";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
@@ -2897,7 +2897,19 @@ export default function Customer() {
                     Number.isFinite(deliveryCoords.longitude) ? (
                       <div style={{ marginTop: 14 }}>
                         <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Delivery pin on map</p>
-                        <SafeGoogleMapEmbed mapTitle="Delivery location" mapQuery={`${deliveryCoords.latitude},${deliveryCoords.longitude}`} />
+                        <LiveMap
+                          height={260}
+                          center={{ lat: deliveryCoords.latitude, lng: deliveryCoords.longitude }}
+                          zoom={16}
+                          markers={[
+                            {
+                              id: "delivery-pin",
+                              variant: "home",
+                              position: { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude },
+                              title: "Delivery location",
+                            },
+                          ]}
+                        />
                       </div>
                     ) : null}
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">

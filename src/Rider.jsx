@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { API_URL } from "./apiConfig";
-import SafeGoogleDirectionsEmbed from "./SafeGoogleDirectionsEmbed";
-import SafeGoogleMapEmbed from "./SafeGoogleMapEmbed";
+import LiveMap from "./components/Shared/LiveMap.jsx";
 import { LS, localGetMigrated, localRemove, localSet } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
 import LiveChatWidget from "./components/LiveChatWidget";
@@ -245,6 +244,14 @@ export default function Rider() {
   const isApproved = loggedInRider?.approvalStatus === "APPROVED";
   const isRejected = loggedInRider?.approvalStatus === "REJECTED";
   const needsKycFlow = loggedInRider && !isApproved && !isRejected;
+
+  /** Last known GPS from backend (updated while on duty) — for LiveMap rider pin */
+  const riderMapPosition = useMemo(() => {
+    const lat = loggedInRider?.latitude;
+    const lng = loggedInRider?.longitude;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    return { lat, lng };
+  }, [loggedInRider?.latitude, loggedInRider?.longitude]);
 
   const refreshRiderProfile = useCallback(async () => {
     if (!loggedInRider?.phone) return;
@@ -1067,10 +1074,44 @@ export default function Rider() {
                         </div>
                         {renderOrderItems(order)}
                         <RiderDeliveryCountdownBanner deliveryEtaIso={order.deliveryETA} />
-                        <SafeGoogleDirectionsEmbed
-                          originQuery={order.restaurant?.address || ""}
-                          destinationQuery={order.deliveryAddress || ""}
-                          mapTitle={`Delivery route ${order.orderNumber || ""}`}
+                        <LiveMap
+                          height={280}
+                          center={riderMapPosition || undefined}
+                          zoom={12}
+                          markers={[
+                            ...(riderMapPosition
+                              ? [
+                                  {
+                                    id: `rider-${order.id}`,
+                                    variant: "rider",
+                                    position: riderMapPosition,
+                                    title: "You",
+                                  },
+                                ]
+                              : []),
+                            {
+                              id: `store-${order.id}`,
+                              variant: "store",
+                              address: String(order.restaurant?.address || "").trim(),
+                              title: order.restaurant?.name || "Restaurant",
+                            },
+                            {
+                              id: `drop-${order.id}`,
+                              variant: "home",
+                              address: String(order.deliveryAddress || "").trim(),
+                              title: "Customer",
+                            },
+                          ].filter((m) => m.position || (m.address && m.address.length > 0))}
+                          directions={
+                            String(order.restaurant?.address || "").trim() &&
+                            String(order.deliveryAddress || "").trim()
+                              ? {
+                                  origin: String(order.restaurant.address).trim(),
+                                  destination: String(order.deliveryAddress).trim(),
+                                }
+                              : null
+                          }
+                          suppressRouteMarkers
                         />
                         <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginTop: 10 }}>
                           <p style={{ margin: "0 0 10px", fontSize: 14 }}>
@@ -1119,7 +1160,29 @@ export default function Rider() {
                         <h3 style={{ margin: "0 0 5px", fontSize: 18 }}>🏪 {order.restaurant?.name}</h3>
                         <p style={{ fontSize: 12, color: "#64748b" }}>{order.orderNumber}</p>
                         {renderOrderItems(order)}
-                        <SafeGoogleMapEmbed mapTitle={`Pickup ${order.restaurant?.name || ""}`} mapQuery={order.restaurant?.address || ""} heightPx={200} />
+                        <LiveMap
+                          height={220}
+                          center={riderMapPosition || undefined}
+                          zoom={13}
+                          markers={[
+                            ...(riderMapPosition
+                              ? [
+                                  {
+                                    id: `rider-pu-${order.id}`,
+                                    variant: "rider",
+                                    position: riderMapPosition,
+                                    title: "You",
+                                  },
+                                ]
+                              : []),
+                            {
+                              id: `store-pu-${order.id}`,
+                              variant: "store",
+                              address: String(order.restaurant?.address || "").trim(),
+                              title: order.restaurant?.name || "Pickup",
+                            },
+                          ].filter((m) => m.position || (m.address && m.address.length > 0))}
+                        />
                         <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginTop: 10 }}>
                           <p style={{ fontSize: 14, margin: "0 0 10px" }}>📍 {order.restaurant?.address || "—"}</p>
                           <div style={{ display: "flex", gap: 10 }}>
@@ -1167,11 +1230,44 @@ export default function Rider() {
                         <p style={{ margin: 0 }}>📍 Drop: {order.deliveryAddress || "—"}</p>
                       </div>
                       {order.deliveryETA ? <RiderDeliveryCountdownBanner deliveryEtaIso={order.deliveryETA} /> : null}
-                      <SafeGoogleDirectionsEmbed
-                        originQuery={order.restaurant?.address || ""}
-                        destinationQuery={order.deliveryAddress || ""}
-                        mapTitle={`Preview ${order.orderNumber || ""}`}
-                        heightPx={200}
+                      <LiveMap
+                        height={240}
+                        center={riderMapPosition || undefined}
+                        zoom={11}
+                        markers={[
+                          ...(riderMapPosition
+                            ? [
+                                {
+                                  id: `rider-req-${order.id}`,
+                                  variant: "rider",
+                                  position: riderMapPosition,
+                                  title: "You",
+                                },
+                              ]
+                            : []),
+                          {
+                            id: `store-req-${order.id}`,
+                            variant: "store",
+                            address: String(order.restaurant?.address || "").trim(),
+                            title: order.restaurant?.name || "Restaurant",
+                          },
+                          {
+                            id: `drop-req-${order.id}`,
+                            variant: "home",
+                            address: String(order.deliveryAddress || "").trim(),
+                            title: "Drop",
+                          },
+                        ].filter((m) => m.position || (m.address && m.address.length > 0))}
+                        directions={
+                          String(order.restaurant?.address || "").trim() &&
+                          String(order.deliveryAddress || "").trim()
+                            ? {
+                                origin: String(order.restaurant.address).trim(),
+                                destination: String(order.deliveryAddress).trim(),
+                              }
+                            : null
+                        }
+                        suppressRouteMarkers
                       />
                       <button type="button" className="checkout-btn" style={{ marginTop: 0, background: "#0f172a" }} onClick={() => acceptOrder(order.id, order.status)}>
                         Accept
