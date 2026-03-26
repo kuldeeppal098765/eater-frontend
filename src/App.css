@@ -9,7 +9,6 @@ html {
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  touch-action: manipulation;
 }
 
 body {
@@ -22,7 +21,6 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   user-select: none;
-  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -137,7 +135,7 @@ img {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 100vh;
+  min-height: 100svh;
   min-height: 100dvh;
   align-items: stretch;
   text-align: left;

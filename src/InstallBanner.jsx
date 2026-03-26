@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
 const STORAGE_KEY = "fresto_install_banner_dismissed_at";
@@ -15,17 +15,12 @@ function isDismissedRecently() {
   }
 }
 
-function bannerVariant(pathname) {
-  if (pathname.startsWith("/rider")) {
-    return { title: "Vyaharam Rider 🛵", accent: "#E53935" };
-  }
-  if (pathname.startsWith("/partner") || pathname.startsWith("/restaurant")) {
-    return { title: "Vyaharam Partner 🏪", accent: "#43A047" };
-  }
-  if (pathname.startsWith("/admin")) {
-    return { title: "Vyaharam Admin ⚙️", accent: "#1E88E5" };
-  }
-  return { title: "Vyaharam App 🍔", accent: "#FF7043" };
+/** Mirrors `window.location.pathname` via the router (same string in-browser). */
+function titleForPath(pathname) {
+  if (pathname.startsWith("/rider")) return "Vyaharam Rider 🛵";
+  if (pathname.startsWith("/partner") || pathname.startsWith("/restaurant")) return "Vyaharam Partner 🏪";
+  if (pathname.startsWith("/admin")) return "Vyaharam Admin ⚙️";
+  return "Vyaharam App 🍔";
 }
 
 export default function InstallBanner() {
@@ -33,7 +28,7 @@ export default function InstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [visible, setVisible] = useState(false);
 
-  const { title, accent } = bannerVariant(pathname);
+  const title = useMemo(() => titleForPath(pathname), [pathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -82,30 +77,26 @@ export default function InstallBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 z-50 flex w-full items-center justify-between rounded-t-xl bg-white p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
-      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      className="fixed bottom-6 left-1/2 z-[9999] flex w-[95%] max-w-md -translate-x-1/2 items-center justify-between rounded-2xl border border-gray-100 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_8px_30px_rgba(0,0,0,0.2)]"
       role="region"
       aria-label="Install app"
     >
       <div className="min-w-0 flex-1 pr-3">
-        <p className="truncate text-sm font-bold" style={{ color: accent }}>
-          {title}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-500">Install for a faster experience</p>
+        <p className="truncate text-sm font-bold text-slate-900">{title}</p>
+        <p className="mt-0.5 text-xs text-slate-500">Add to home screen — faster &amp; offline-ready</p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
           onClick={install}
-          className="rounded-lg px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-white shadow-md"
-          style={{ backgroundColor: accent }}
+          className="rounded-xl bg-green-600 px-6 py-2 font-bold uppercase tracking-wide text-white shadow-lg shadow-green-500/40 animate-pulse"
         >
           INSTALL
         </button>
         <button
           type="button"
           onClick={dismiss}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           aria-label="Dismiss install banner"
         >
           ✕
