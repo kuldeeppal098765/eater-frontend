@@ -378,7 +378,12 @@ export default function Partner() {
 
   const pathSegment = useMemo(() => {
     const m = location.pathname.match(/^\/(?:partner|restaurant)\/([^/]+)\/?$/);
-    return m ? decodeURIComponent(m[1]) : null;
+    if (!m) return null;
+    try {
+      return decodeURIComponent(m[1]);
+    } catch {
+      return m[1];
+    }
   }, [location.pathname]);
 
   const goPartnerTab = useCallback(
@@ -598,11 +603,17 @@ export default function Partner() {
     return () => document.removeEventListener("click", onDocClick);
   }, [partnerNotifOpen]);
 
+  /** Sync list poll into session — depend only on `id`, never full `loggedInVendor`, or every merge creates a new object and retriggers forever. */
   useEffect(() => {
-    if (!loggedInVendor) return;
-    const updated = restaurantsList.find((r) => r.id === loggedInVendor.id);
-    if (updated) setLoggedInVendor((p) => mergePartnerRecordKeepToken(p, updated));
-  }, [restaurantsList, loggedInVendor]);
+    const id = loggedInVendor?.id;
+    if (!id) return;
+    const updated = restaurantsList.find((r) => r.id === id);
+    if (!updated) return;
+    setLoggedInVendor((p) => {
+      if (!p || p.id !== id) return p;
+      return mergePartnerRecordKeepToken(p, updated);
+    });
+  }, [restaurantsList, loggedInVendor?.id]);
 
   useEffect(() => {
     if (!loggedInVendor?.partnerDocuments) {
@@ -635,7 +646,7 @@ export default function Partner() {
 
   /** Canonicalize `/partner` → `/partner/<tab>` and fix invalid segments (SPA + hard refresh). */
   useEffect(() => {
-    if (!auth.loggedIn || !loggedInVendor) return;
+    if (!auth.loggedIn || !loggedInVendor?.id) return;
     const allowed = isOnboarding ? PARTNER_TABS_ONBOARD : PARTNER_TABS_LIVE;
     const base = location.pathname.startsWith("/restaurant") ? "/restaurant" : "/partner";
     const isRoot = /^\/(?:partner|restaurant)\/?$/.test(location.pathname);
@@ -651,7 +662,8 @@ export default function Partner() {
     navigate(`${base}/${target}`, { replace: true });
   }, [
     auth.loggedIn,
-    loggedInVendor,
+    loggedInVendor?.id,
+    loggedInVendor?.approvalStatus,
     isOnboarding,
     location.pathname,
     pathSegment,
@@ -833,8 +845,9 @@ export default function Partner() {
   }
 
   const vendorOrders = useMemo(
-    () => (loggedInVendor ? orders.filter((o) => o.restaurantId === loggedInVendor.id) : []),
-    [orders, loggedInVendor]
+    () =>
+      loggedInVendor?.id ? orders.filter((o) => String(o.restaurantId) === String(loggedInVendor.id)) : [],
+    [orders, loggedInVendor?.id],
   );
 
   const financeDeliveredOrders = useMemo(
@@ -912,7 +925,7 @@ export default function Partner() {
     return () => {
       audio.pause();
     };
-  }, [pendingNewOrderAlarm, auth.loggedIn, loggedInVendor]);
+  }, [pendingNewOrderAlarm, auth.loggedIn, loggedInVendor?.id]);
   const pastOrders = useMemo(
     () =>
       historyOrdersRaw.filter((o) =>
