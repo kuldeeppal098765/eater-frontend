@@ -52,12 +52,29 @@
   }
 }
 
-html,
+html {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 body {
   margin: 0;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -98,7 +115,9 @@ img {
   flex-direction: column;
   align-items: stretch;
   overflow-x: hidden;
-  /* No overflow-y or max-height — page scrolls on the document */
+  overflow-y: visible;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 h1,

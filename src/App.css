@@ -6,6 +6,10 @@
 
 html {
   font-size: 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
@@ -19,6 +23,9 @@ body {
   background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   color: #0f172a;
   overflow-x: hidden;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -126,6 +133,8 @@ img {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /** Partner console — sidebar must not shrink (was collapsing with root overflow-wrap) */
