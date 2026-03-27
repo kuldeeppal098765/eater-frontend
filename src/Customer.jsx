@@ -3010,7 +3010,10 @@ export default function Customer() {
                   </div>
                 </div>
 
-                <div className="md:sticky md:top-[118px]" style={{ ...card, padding: 14, height: "fit-content" }}>
+                <div
+                  className="md:sticky md:top-[172px] md:self-start md:z-[25]"
+                  style={{ ...card, padding: 14, height: "fit-content" }}
+                >
                   <h3 style={{ marginTop: 0 }}>{activeRestName || "Order Summary"}</h3>
                   <div style={{ borderBottom: "1px dashed #e2e8f0", paddingBottom: 10, marginBottom: 10 }}>
                     {cart.map((i) => (
