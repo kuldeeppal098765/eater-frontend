@@ -1113,7 +1113,8 @@ export default function Rider() {
                           center={riderMapPosition || undefined}
                           zoom={12}
                           autoFitBounds
-                          markers={[
+                          landmarkSearchAtHomeMarker
+                          mainMarkers={[
                             ...(riderMapPosition
                               ? [
                                   {
@@ -1149,6 +1150,9 @@ export default function Rider() {
                           directionsResult={riderDirectionsByOrderId[order.id]}
                           suppressRouteMarkers
                         />
+                        <p style={{ margin: "8px 0 0", fontSize: 11, color: "#854d0e", fontWeight: 600 }}>
+                          Yellow pins: nearby places (~100m around customer drop) for orientation.
+                        </p>
                         <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginTop: 10 }}>
                           <p style={{ margin: "0 0 10px", fontSize: 14 }}>
                             📍 <strong>Drop:</strong> {order.deliveryAddress || "—"}
@@ -1201,7 +1205,7 @@ export default function Rider() {
                           center={riderMapPosition || undefined}
                           zoom={13}
                           autoFitBounds
-                          markers={[
+                          mainMarkers={[
                             ...(riderMapPosition
                               ? [
                                   {
@@ -1272,7 +1276,8 @@ export default function Rider() {
                         center={riderMapPosition || undefined}
                         zoom={11}
                         autoFitBounds
-                        markers={[
+                        landmarkSearchAtHomeMarker
+                        mainMarkers={[
                           ...(riderMapPosition
                             ? [
                                 {
@@ -1308,6 +1313,9 @@ export default function Rider() {
                         directionsResult={riderDirectionsByOrderId[order.id]}
                         suppressRouteMarkers
                       />
+                      <p style={{ margin: "8px 0 0", fontSize: 11, color: "#854d0e", fontWeight: 600 }}>
+                        Yellow pins: nearby places (~100m around drop) for orientation.
+                      </p>
                       <button type="button" className="checkout-btn" style={{ marginTop: 0, background: "#0f172a" }} onClick={() => acceptOrder(order.id, order.status)}>
                         Accept
                         {riderPayoutFromOrder(order) != null ? ` · ~₹${riderPayoutFromOrder(order).toFixed(0)} delivery pay` : ""}

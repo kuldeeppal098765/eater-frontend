@@ -4,6 +4,7 @@ import "./App.css";
 
 import { API_URL, APP_BRAND } from "./apiConfig";
 import { fetchWithRetry, describeFetchFailure } from "./fetchRetry.js";
+import LiveMap from "./components/Shared/LiveMap.jsx";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
@@ -1595,6 +1596,16 @@ export default function Customer() {
 
   const isCheckoutOutletAcceptingOrders = Boolean(checkoutServingRestaurant?.isOutletOnline);
 
+  const checkoutMapCenter = useMemo(() => {
+    if (exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)) {
+      return { lat: exactCoords.lat, lng: exactCoords.lng };
+    }
+    if (browseCoords && Number.isFinite(browseCoords.latitude) && Number.isFinite(browseCoords.longitude)) {
+      return { lat: browseCoords.latitude, lng: browseCoords.longitude };
+    }
+    return { lat: 20.5937, lng: 78.9629 };
+  }, [exactCoords, browseCoords]);
+
   useEffect(() => {
     if (location.pathname === "/wallet" && location.hash === "#apply-coupons") {
       setCouponDrawerOpen(true);
@@ -2891,7 +2902,7 @@ export default function Customer() {
         } />
 
         <Route path="/checkout" element={
-          <div className="main-container py-6 text-sm md:text-base">
+          <div className="main-container pt-0 pb-10 text-sm md:text-base">
             <div className="checkout-top-bar">
               <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 <span className="brand">{APP_BRAND}.</span>
@@ -2908,15 +2919,19 @@ export default function Customer() {
             </div>
 
             {!loggedInCustomer ? (
-              <div style={{ ...card, padding: 24, textAlign: "center" }}>
-                Please login to continue checkout.
+              <div className="checkout-page-body px-[max(16px,4%)]">
+                <div style={{ ...card, padding: 24, textAlign: "center" }}>
+                  Please login to continue checkout.
+                </div>
               </div>
             ) : !cart.length ? (
-              <div style={{ ...card, padding: 24, textAlign: "center" }}>
-                Cart is empty. Add items to continue.
+              <div className="checkout-page-body px-[max(16px,4%)]">
+                <div style={{ ...card, padding: 24, textAlign: "center" }}>
+                  Cart is empty. Add items to continue.
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+              <div className="checkout-page-body scroll-mt-28 px-[max(16px,4%)] grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
                 <div className="grid gap-4">
                   <div className="relative z-0 overflow-visible" style={{ ...card, padding: 14 }}>
                     <h3 style={{ marginTop: 0 }}>Delivery address</h3>
@@ -2925,11 +2940,32 @@ export default function Customer() {
                       type="button"
                       disabled={checkoutGeoLoading}
                       onClick={fetchDeviceLocation}
-                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-4 mb-4 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
+                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-4 mb-3 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
                     >
                       <span aria-hidden>📍</span>
                       {checkoutGeoLoading ? "Fetching location..." : "Use Current Location"}
                     </button>
+                    <div className="relative z-0 mb-4 overflow-hidden rounded-xl border border-slate-200">
+                      <LiveMap
+                        height={240}
+                        center={checkoutMapCenter}
+                        zoom={
+                          exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng) ? 16 : 12
+                        }
+                        mainMarkers={
+                          exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)
+                            ? [
+                                {
+                                  id: "checkout-delivery-pin",
+                                  variant: "home",
+                                  position: { lat: exactCoords.lat, lng: exactCoords.lng },
+                                  title: "Delivery location",
+                                },
+                              ]
+                            : []
+                        }
+                      />
+                    </div>
                     <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
                       We use your GPS once to fill the full address. You can edit the text; exact coordinates stay on the order for the rider when you use this button.
                     </p>

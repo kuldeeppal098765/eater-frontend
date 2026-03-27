@@ -4,6 +4,16 @@ import { DirectionsRenderer, GoogleMap, Marker, useJsApiLoader } from "@react-go
 const DEFAULT_CENTER = { lat: 20.5937, lng: 78.9629 };
 const MAP_LIBRARIES = ["places", "geometry"];
 
+/** Types for `nearbySearch` within ~100m of customer drop (Rider context). */
+const LANDMARK_NEARBY_TYPES = [
+  "hospital",
+  "school",
+  "university",
+  "bank",
+  "restaurant",
+  "tourist_attraction",
+];
+
 /** SVG pin data-URLs (no network) — bike / store / home */
 function svgIconDataUrl(variant) {
   const common = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56"';
@@ -27,33 +37,38 @@ function svgIconDataUrl(variant) {
   )}`;
 }
 
-/**
- * @typedef {Object} LiveMapMarker
- * @property {string} [id]
- * @property {{ lat: number, lng: number }} [position]
- * @property {string} [address] — geocoded when `position` is missing
- * @property {string} [title]
- * @property {'rider'|'store'|'home'|'default'} [variant]
- */
+function normalizeLandmarkEntry(raw, idx) {
+  if (!raw || typeof raw !== "object") return null;
+  const lat = Number(raw.lat ?? raw.position?.lat);
+  const lng = Number(raw.lng ?? raw.position?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const name = String(raw.name || raw.title || "Landmark").slice(0, 80);
+  const id = raw.id != null ? String(raw.id) : `lm-${idx}`;
+  return { id, name, position: { lat, lng } };
+}
 
 /**
  * Shared Google Map (Maps JavaScript API). Key: `import.meta.env.VITE_GOOGLE_MAPS_API_KEY`.
  *
- * @param {{ lat: number, lng: number }} [center] — map pans when this changes (skipped when `autoFitBounds` is true)
- * @param {number} [zoom]
- * @param {LiveMapMarker[]} [markers]
- * @param {{ origin: google.maps.LatLngLiteral|string, destination: google.maps.LatLngLiteral|string, travelMode?: keyof typeof google.maps.TravelMode }} [directions] — runs DirectionsService when both ends set (stable string key avoids duplicate requests)
- * @param {google.maps.DirectionsResult|null} [directionsResult] — precomputed Directions response (e.g. from backend); skips internal DirectionsService
- * @param {boolean} [suppressRouteMarkers] — hide A/B pins from DirectionsRenderer (use custom markers)
- * @param {boolean} [autoFitBounds] — fit map to resolved markers + route bounds (good for rider multi-stop views)
- * @param {number|string} [height]
- * @param {string} [className]
- * @param {(map: google.maps.Map) => void} [onMapReady]
+ * @param {{ lat: number, lng: number }} [center]
+ * @param {LiveMapMarker[]} [mainMarkers] — primary pins (bike / store / home)
+ * @param {LiveMapMarker[]} [markers] — merged with mainMarkers (backward compatible)
+ * @param {{ id?: string, name?: string, lat?: number, lng?: number, position?: { lat: number, lng: number } }[]} [nearbyLandmarks] — extra POIs to draw (yellow dots + label)
+ * @param {{ lat: number, lng: number } | null} [landmarkSearchAnchor] — if set, runs Places `nearbySearch` within 100m (requires Places API)
+ * @param {boolean} [landmarkSearchAtHomeMarker] — Rider: after geocoding, use resolved `home` marker position as anchor for nearbySearch
+ * @param {object} [directions]
+ * @param {google.maps.DirectionsResult|null} [directionsResult]
+ * @param {boolean} [suppressRouteMarkers]
+ * @param {boolean} [autoFitBounds]
  */
 export default function LiveMap({
   center = DEFAULT_CENTER,
   zoom = 14,
+  mainMarkers = [],
   markers = [],
+  nearbyLandmarks = [],
+  landmarkSearchAnchor = null,
+  landmarkSearchAtHomeMarker = false,
   directions = null,
   directionsResult = null,
   suppressRouteMarkers = true,
@@ -64,9 +79,13 @@ export default function LiveMap({
 }) {
   const apiKey = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
   const mapRef = useRef(null);
+  const landmarkAccRef = useRef(new Map());
+  const [mapInstance, setMapInstance] = useState(null);
   const [resolvedMarkers, setResolvedMarkers] = useState([]);
-  /** Route polyline from internal DirectionsService or optional parent-provided result */
   const [routeDirections, setRouteDirections] = useState(null);
+  const [fetchedLandmarks, setFetchedLandmarks] = useState([]);
+
+  const markersInput = useMemo(() => [...(mainMarkers || []), ...(markers || [])], [mainMarkers, markers]);
 
   const directionsKey = useMemo(() => {
     if (!directions?.origin || !directions?.destination) return null;
@@ -98,7 +117,7 @@ export default function LiveMap({
 
   /** Geocode markers that only have `address` */
   useEffect(() => {
-    if (!isLoaded || !window.google?.maps?.Geocoder || !Array.isArray(markers)) {
+    if (!isLoaded || !window.google?.maps?.Geocoder || !Array.isArray(markersInput)) {
       setResolvedMarkers([]);
       return;
     }
@@ -107,8 +126,8 @@ export default function LiveMap({
 
     async function run() {
       const out = [];
-      for (let i = 0; i < markers.length; i++) {
-        const m = markers[i] || {};
+      for (let i = 0; i < markersInput.length; i++) {
+        const m = markersInput[i] || {};
         if (m.position && Number.isFinite(m.position.lat) && Number.isFinite(m.position.lng)) {
           out.push({ ...m, position: { lat: m.position.lat, lng: m.position.lng } });
           continue;
@@ -128,7 +147,7 @@ export default function LiveMap({
             position: { lat: loc.lat(), lng: loc.lng() },
           });
         } catch {
-          /* skip ungeocodable */
+          /* skip */
         }
       }
       if (!cancelled) setResolvedMarkers(out);
@@ -137,9 +156,84 @@ export default function LiveMap({
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, markers]);
+  }, [isLoaded, markersInput]);
 
-  /** Internal DirectionsService — or use `directionsResult` from parent (server / custom client flow). */
+  const homePositionForLandmarks = useMemo(() => {
+    if (!landmarkSearchAtHomeMarker) return null;
+    const h = resolvedMarkers.find((m) => m.variant === "home" && m.position);
+    return h?.position ?? null;
+  }, [landmarkSearchAtHomeMarker, resolvedMarkers]);
+
+  const effectiveLandmarkAnchor = useMemo(() => {
+    if (landmarkSearchAnchor && Number.isFinite(landmarkSearchAnchor.lat) && Number.isFinite(landmarkSearchAnchor.lng)) {
+      return { lat: landmarkSearchAnchor.lat, lng: landmarkSearchAnchor.lng };
+    }
+    if (homePositionForLandmarks) return homePositionForLandmarks;
+    return null;
+  }, [landmarkSearchAnchor, homePositionForLandmarks]);
+
+  /** Places nearbySearch ~100m for Rider destination context */
+  useEffect(() => {
+    if (!isLoaded || !mapInstance || !window.google?.maps?.places?.PlacesService) {
+      setFetchedLandmarks([]);
+      return;
+    }
+    if (!effectiveLandmarkAnchor) {
+      setFetchedLandmarks([]);
+      return;
+    }
+    let cancelled = false;
+    landmarkAccRef.current = new Map();
+    const service = new window.google.maps.places.PlacesService(mapInstance);
+    const loc = new window.google.maps.LatLng(effectiveLandmarkAnchor.lat, effectiveLandmarkAnchor.lng);
+    let remaining = LANDMARK_NEARBY_TYPES.length;
+
+    const finishType = () => {
+      remaining -= 1;
+      if (remaining <= 0 && !cancelled) {
+        const list = [...landmarkAccRef.current.values()].sort((a, b) => a.name.localeCompare(b.name));
+        setFetchedLandmarks(list.slice(0, 18));
+      }
+    };
+
+    for (const type of LANDMARK_NEARBY_TYPES) {
+      service.nearbySearch({ location: loc, radius: 100, type }, (results, status) => {
+        if (cancelled) return;
+        const OK = window.google.maps.places.PlacesServiceStatus.OK;
+        if (status === OK && Array.isArray(results)) {
+          for (const p of results) {
+            const pid = p.place_id ? String(p.place_id) : `${p.name}-${p.geometry?.location?.lat()}`;
+            if (landmarkAccRef.current.has(pid)) continue;
+            if (!p.geometry?.location) continue;
+            landmarkAccRef.current.set(pid, {
+              id: pid,
+              name: String(p.name || "Place").slice(0, 72),
+              position: { lat: p.geometry.location.lat(), lng: p.geometry.location.lng() },
+            });
+          }
+        }
+        finishType();
+      });
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, mapInstance, effectiveLandmarkAnchor?.lat, effectiveLandmarkAnchor?.lng]);
+
+  const staticLandmarks = useMemo(() => {
+    if (!Array.isArray(nearbyLandmarks)) return [];
+    return nearbyLandmarks.map((x, i) => normalizeLandmarkEntry(x, i)).filter(Boolean);
+  }, [nearbyLandmarks]);
+
+  const allLandmarkPoints = useMemo(() => {
+    const byId = new Map();
+    for (const L of [...staticLandmarks, ...fetchedLandmarks]) {
+      if (!byId.has(L.id)) byId.set(L.id, L);
+    }
+    return [...byId.values()];
+  }, [staticLandmarks, fetchedLandmarks]);
+
   useEffect(() => {
     if (!isLoaded || !window.google?.maps?.DirectionsService) return;
     if (directionsResult != null) {
@@ -186,14 +280,12 @@ export default function LiveMap({
     return DEFAULT_CENTER;
   }, [center, resolvedMarkers]);
 
-  /** Smooth pan when `center` prop updates (e.g. geolocation); skipped when fitting bounds for multi-marker views */
   useEffect(() => {
     if (autoFitBounds) return;
     if (!mapRef.current || !center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
     mapRef.current.panTo({ lat: center.lat, lng: center.lng });
   }, [autoFitBounds, center?.lat, center?.lng]);
 
-  /** Fit camera to markers + route (rider delivery / request cards) */
   useEffect(() => {
     if (!autoFitBounds || !mapRef.current || !isLoaded || !window.google?.maps) return;
     const map = mapRef.current;
@@ -205,19 +297,24 @@ export default function LiveMap({
         extended = true;
       }
     }
+    for (const L of allLandmarkPoints) {
+      bounds.extend(L.position);
+      extended = true;
+    }
     const routeBounds = effectiveDirections?.routes?.[0]?.bounds;
     if (routeBounds) {
       bounds.union(routeBounds);
       extended = true;
     }
     if (extended) {
-      map.fitBounds(bounds, 56);
+      map.fitBounds(bounds, 64);
     }
-  }, [autoFitBounds, isLoaded, resolvedMarkers, effectiveDirections]);
+  }, [autoFitBounds, isLoaded, resolvedMarkers, allLandmarkPoints, effectiveDirections]);
 
   const onLoad = useCallback(
     (map) => {
       mapRef.current = map;
+      setMapInstance(map);
       if (typeof onMapReady === "function") onMapReady(map);
     },
     [onMapReady],
@@ -225,7 +322,20 @@ export default function LiveMap({
 
   const onUnmount = useCallback(() => {
     mapRef.current = null;
+    setMapInstance(null);
   }, []);
+
+  const landmarkIcon = useMemo(() => {
+    if (!window.google?.maps) return undefined;
+    return {
+      path: window.google.maps.SymbolPath.CIRCLE,
+      scale: 7,
+      fillColor: "#facc15",
+      fillOpacity: 1,
+      strokeColor: "#ca8a04",
+      strokeWeight: 2,
+    };
+  }, [isLoaded]);
 
   if (!apiKey) {
     return (
@@ -294,6 +404,21 @@ export default function LiveMap({
             />
           );
         })}
+        {allLandmarkPoints.map((L, idx) => (
+          <Marker
+            key={`landmark-${L.id}-${idx}`}
+            position={L.position}
+            title={L.name}
+            icon={landmarkIcon}
+            label={{
+              text: L.name,
+              color: "#0f172a",
+              fontSize: "11px",
+              fontWeight: "bold",
+              className: "livemap-landmark-label",
+            }}
+          />
+        ))}
         {effectiveDirections ? (
           <DirectionsRenderer
             options={{
