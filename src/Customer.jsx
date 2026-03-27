@@ -4,7 +4,6 @@ import "./App.css";
 
 import { API_URL, APP_BRAND } from "./apiConfig";
 import { fetchWithRetry, describeFetchFailure } from "./fetchRetry.js";
-import LiveMap from "./components/Shared/LiveMap.jsx";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
@@ -1596,16 +1595,6 @@ export default function Customer() {
 
   const isCheckoutOutletAcceptingOrders = Boolean(checkoutServingRestaurant?.isOutletOnline);
 
-  const checkoutMapCenter = useMemo(() => {
-    if (exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)) {
-      return { lat: exactCoords.lat, lng: exactCoords.lng };
-    }
-    if (browseCoords && Number.isFinite(browseCoords.latitude) && Number.isFinite(browseCoords.longitude)) {
-      return { lat: browseCoords.latitude, lng: browseCoords.longitude };
-    }
-    return { lat: 20.5937, lng: 78.9629 };
-  }, [exactCoords, browseCoords]);
-
   useEffect(() => {
     if (location.pathname === "/wallet" && location.hash === "#apply-coupons") {
       setCouponDrawerOpen(true);
@@ -1636,7 +1625,28 @@ export default function Customer() {
     setNewAddress({ label: "", text: "" });
   }
 
-  /** Map-less checkout: device GPS + Google reverse geocode → full address + exact rider coords. */
+  /** Label from Geocoding `address_components` (area / POI near pin). */
+  function autoLabelFromGeocodeResult(result) {
+    const comps = result?.address_components;
+    if (!Array.isArray(comps)) return "Current location";
+    const pick = (types) => {
+      for (const c of comps) {
+        if (!c.types) continue;
+        if (types.some((t) => c.types.includes(t))) return String(c.long_name || "").trim();
+      }
+      return "";
+    };
+    const name =
+      pick(["premise", "establishment", "point_of_interest"]) ||
+      pick(["neighborhood"]) ||
+      pick(["sublocality", "sublocality_level_1"]) ||
+      pick(["locality"]) ||
+      "";
+    if (name.length > 1) return name.slice(0, 56);
+    return "Current location";
+  }
+
+  /** Checkout: GPS + reverse geocode → label + full address fields + exact rider coords (no map). */
   async function fetchDeviceLocation() {
     setCheckoutGeoLoading(true);
     const finish = () => setCheckoutGeoLoading(false);
@@ -1654,24 +1664,27 @@ export default function Customer() {
         setSelectedAddressId("");
         const key = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
         let line = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} — add details below`;
+        let autoLabel = "Current location";
         if (key) {
           try {
             const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${encodeURIComponent(key)}`;
             const res = await fetch(url);
             const data = await res.json().catch(() => ({}));
             if (data.status === "OK" && Array.isArray(data.results) && data.results[0]?.formatted_address) {
-              line = String(data.results[0].formatted_address);
+              const first = data.results[0];
+              line = String(first.formatted_address);
+              autoLabel = autoLabelFromGeocodeResult(first);
             } else if (data.error_message) {
-              pushToast("Could not resolve address from GPS. You can edit the text below.");
+              pushToast("Could not resolve address from GPS. You can edit the fields below.");
             }
           } catch {
             pushToast("Address lookup failed. Coordinates are still saved for delivery.");
           }
         } else {
-          pushToast("Add VITE_GOOGLE_MAPS_API_KEY for automatic address from GPS.");
+          pushToast("Frontend needs VITE_GOOGLE_MAPS_API_KEY in eater-frontend/.env (then restart dev server).");
         }
         setDeliveryAddress(line);
-        setNewAddress((s) => ({ ...s, text: line }));
+        setNewAddress((s) => ({ ...s, text: line, label: autoLabel }));
         finish();
       },
       () => {
@@ -2902,7 +2915,7 @@ export default function Customer() {
         } />
 
         <Route path="/checkout" element={
-          <div className="main-container pt-0 pb-10 text-sm md:text-base">
+          <div className="main-container checkout-route-shell pt-0 pb-10 text-sm md:text-base">
             <div className="checkout-top-bar">
               <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 <span className="brand">{APP_BRAND}.</span>
@@ -2940,34 +2953,13 @@ export default function Customer() {
                       type="button"
                       disabled={checkoutGeoLoading}
                       onClick={fetchDeviceLocation}
-                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-4 mb-3 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
+                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-2 mb-3 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
                     >
                       <span aria-hidden>📍</span>
                       {checkoutGeoLoading ? "Fetching location..." : "Use Current Location"}
                     </button>
-                    <div className="relative z-0 mb-4 overflow-hidden rounded-xl border border-slate-200">
-                      <LiveMap
-                        height={240}
-                        center={checkoutMapCenter}
-                        zoom={
-                          exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng) ? 16 : 12
-                        }
-                        mainMarkers={
-                          exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)
-                            ? [
-                                {
-                                  id: "checkout-delivery-pin",
-                                  variant: "home",
-                                  position: { lat: exactCoords.lat, lng: exactCoords.lng },
-                                  title: "Delivery location",
-                                },
-                              ]
-                            : []
-                        }
-                      />
-                    </div>
                     <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
-                      We use your GPS once to fill the full address. You can edit the text; exact coordinates stay on the order for the rider when you use this button.
+                      Tap once: we fill <strong>Label</strong> and <strong>Full address</strong> from your exact location (Google Geocoding). Edit if needed — GPS pin for the rider stays fixed.
                     </p>
                     {exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng) ? (
                       <p style={{ margin: "0 0 12px", fontSize: 11, color: "#0369a1", fontWeight: 600 }}>

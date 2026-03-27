@@ -1166,17 +1166,20 @@ button:hover {
   border-bottom: 1px solid #e2e8f0;
   position: sticky;
   top: 86px;
-  z-index: 50;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  /* Below main nav (1000); above checkout cards so content scrolls under cleanly */
+  z-index: 120;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .checkout-page-body {
-  padding-top: 1rem;
+  /* Clear space below sticky “SECURE CHECKOUT” so buttons are never tucked under it */
+  padding-top: clamp(1.75rem, 5vw, 3rem);
+  margin-top: 0.5rem;
 }
 
 @media (min-width: 768px) {
   .checkout-page-body {
-    padding-top: 1.5rem;
+    padding-top: clamp(2rem, 4vw, 3.25rem);
   }
 }
 
@@ -1194,6 +1197,10 @@ button:hover {
   letter-spacing: 2px;
   color: #64748b;
   font-weight: 700;
+}
+
+.checkout-route-shell {
+  scroll-padding-top: 168px;
 }
 
 /* Coupon studio drawer (Fresto-style) */
