@@ -1646,53 +1646,61 @@ export default function Customer() {
     return "Current location";
   }
 
-  /** Checkout: GPS + reverse geocode → label + full address fields + exact rider coords (no map). */
+  /** Checkout: GPS + reverse geocode → label + full address + exact rider coords (no map). */
   async function fetchDeviceLocation() {
-    setCheckoutGeoLoading(true);
-    const finish = () => setCheckoutGeoLoading(false);
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      pushToast("Location is not available on this device.");
-      finish();
+    if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+      alert("Google Maps API Key is missing. Please add it to your .env file to use auto-location.");
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const coords = { lat, lng };
-        setExactCoords(coords);
-        setSelectedAddressId("");
-        const key = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
-        let line = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} — add details below`;
-        let autoLabel = "Current location";
-        if (key) {
-          try {
-            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${encodeURIComponent(key)}`;
-            const res = await fetch(url);
-            const data = await res.json().catch(() => ({}));
-            if (data.status === "OK" && Array.isArray(data.results) && data.results[0]?.formatted_address) {
-              const first = data.results[0];
-              line = String(first.formatted_address);
-              autoLabel = autoLabelFromGeocodeResult(first);
-            } else if (data.error_message) {
-              pushToast("Could not resolve address from GPS. You can edit the fields below.");
-            }
-          } catch {
-            pushToast("Address lookup failed. Coordinates are still saved for delivery.");
-          }
-        } else {
-          pushToast("Frontend needs VITE_GOOGLE_MAPS_API_KEY in eater-frontend/.env (then restart dev server).");
+
+    setCheckoutGeoLoading(true);
+    try {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        pushToast("Location is not available on this device.");
+        return;
+      }
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0,
+        });
+      });
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      setExactCoords({ lat, lng });
+      setSelectedAddressId("");
+
+      const key = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+      let line = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} — add details below`;
+      let autoLabel = "Current location";
+
+      try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${encodeURIComponent(key)}`;
+        const res = await fetch(url);
+        const data = await res.json().catch(() => ({}));
+        if (data.status === "OK" && Array.isArray(data.results) && data.results[0]?.formatted_address) {
+          const first = data.results[0];
+          line = String(first.formatted_address);
+          autoLabel = autoLabelFromGeocodeResult(first);
+        } else if (data.error_message) {
+          alert("Could not fetch address. Please enter manually.");
         }
-        setDeliveryAddress(line);
-        setNewAddress((s) => ({ ...s, text: line, label: autoLabel }));
-        finish();
-      },
-      () => {
-        pushToast("Location permission denied or unavailable.");
-        finish();
-      },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
-    );
+      } catch (err) {
+        console.error("Geocoding fetch failed:", err);
+        alert("Could not fetch address. Please enter manually.");
+      }
+
+      setDeliveryAddress(line);
+      setNewAddress((s) => ({ ...s, text: line, label: autoLabel }));
+    } catch (geoErr) {
+      console.error("Geolocation error:", geoErr);
+      pushToast("Location permission denied or unavailable.");
+    } finally {
+      setCheckoutGeoLoading(false);
+    }
   }
 
   function createTicket() {
@@ -2932,19 +2940,19 @@ export default function Customer() {
             </div>
 
             {!loggedInCustomer ? (
-              <div className="checkout-page-body px-[max(16px,4%)]">
+              <div className="checkout-page-body px-[max(16px,4%)] pt-24">
                 <div style={{ ...card, padding: 24, textAlign: "center" }}>
                   Please login to continue checkout.
                 </div>
               </div>
             ) : !cart.length ? (
-              <div className="checkout-page-body px-[max(16px,4%)]">
+              <div className="checkout-page-body px-[max(16px,4%)] pt-24">
                 <div style={{ ...card, padding: 24, textAlign: "center" }}>
                   Cart is empty. Add items to continue.
                 </div>
               </div>
             ) : (
-              <div className="checkout-page-body scroll-mt-28 px-[max(16px,4%)] grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+              <div className="max-w-7xl mx-auto w-full scroll-mt-28 px-[max(16px,4%)] pt-24 grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
                 <div className="grid gap-4">
                   <div className="relative z-0 overflow-visible" style={{ ...card, padding: 14 }}>
                     <h3 style={{ marginTop: 0 }}>Delivery address</h3>
