@@ -4,7 +4,6 @@ import "./App.css";
 
 import { API_URL, APP_BRAND } from "./apiConfig";
 import { fetchWithRetry, describeFetchFailure } from "./fetchRetry.js";
-import LiveMap from "./components/Shared/LiveMap.jsx";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
 import { OTP_CODE_LENGTH } from "./otpConfig";
@@ -665,8 +664,8 @@ export default function Customer() {
   const [menuVegOnly, setMenuVegOnly] = useState(false);
   const [menuBestsellerOnly, setMenuBestsellerOnly] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
-  /** Rule 9 — GPS coords sent with order for Address table persistence */
-  const [deliveryCoords, setDeliveryCoords] = useState(null); // { latitude, longitude } | null
+  /** Exact device/GPS coords for rider pin (independent of edited address text). */
+  const [exactCoords, setExactCoords] = useState(null); // { lat, lng } | null
   const [selectedAddressId, setSelectedAddressId] = useState("");
   /** Rule 9 — checkout GPS fetch UX */
   const [checkoutGeoLoading, setCheckoutGeoLoading] = useState(false);
@@ -1290,7 +1289,7 @@ export default function Customer() {
     setLoggedInCustomer(null);
     localRemove(LS.customer);
     setCart([]);
-    setDeliveryCoords(null);
+    setExactCoords(null);
     navigate("/");
   }
 
@@ -1349,7 +1348,11 @@ export default function Customer() {
       pushToast("Open a restaurant menu first.");
       return;
     }
-    if (!deliveryAddress.trim()) {
+    const effectiveDeliveryText =
+      selectedAddressId && selectedAddress
+        ? String(selectedAddress.text || "").trim()
+        : String(newAddress.text || deliveryAddress || "").trim();
+    if (!effectiveDeliveryText) {
       pushToast("Add a delivery address.");
       return;
     }
@@ -1358,7 +1361,10 @@ export default function Customer() {
       pushToast(buildOfflineRestaurantOrderMessage(activeRestaurant.name));
       return;
     }
-    const distCoords = deliveryCoords || browseCoords;
+    const distCoords =
+      exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)
+        ? { latitude: exactCoords.lat, longitude: exactCoords.lng }
+        : browseCoords;
     let distanceKm = null;
     if (
       activeRestaurant &&
@@ -1380,6 +1386,11 @@ export default function Customer() {
       distanceKm,
       riderPayout,
     };
+    const deliveryLocation = { address: effectiveDeliveryText };
+    if (exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)) {
+      deliveryLocation.lat = exactCoords.lat;
+      deliveryLocation.lng = exactCoords.lng;
+    }
     const payload = {
       userId: loggedInCustomer.id,
       userName: loggedInCustomer.name,
@@ -1388,7 +1399,8 @@ export default function Customer() {
       totalAmount: finalTotal,
       paymentMethod: "ONLINE",
       paymentStatus: "PENDING",
-      deliveryAddress,
+      deliveryAddress: effectiveDeliveryText,
+      deliveryLocation,
       billBreakdown,
       items: cart.map((i) => ({
         menuItemId: i.id,
@@ -1400,13 +1412,9 @@ export default function Customer() {
         price: cartUnitPrice(i),
       })),
     };
-    if (
-      deliveryCoords &&
-      Number.isFinite(deliveryCoords.latitude) &&
-      Number.isFinite(deliveryCoords.longitude)
-    ) {
-      payload.latitude = deliveryCoords.latitude;
-      payload.longitude = deliveryCoords.longitude;
+    if (exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng)) {
+      payload.latitude = exactCoords.lat;
+      payload.longitude = exactCoords.lng;
     }
 
     const fingerprint = buildCheckoutFingerprint(cart, activeRestId, finalTotal);
@@ -1481,7 +1489,7 @@ export default function Customer() {
         setAppliedCoupon(null);
         setCouponCode("");
         setDeliveryAddress("");
-        setDeliveryCoords(null);
+        setExactCoords(null);
         navigate(`/order-success?orderId=${encodeURIComponent(orderIdToPay)}`);
         return;
       }
@@ -1587,21 +1595,6 @@ export default function Customer() {
 
   const isCheckoutOutletAcceptingOrders = Boolean(checkoutServingRestaurant?.isOutletOnline);
 
-  /** Checkout map: delivery pin when set, else browse location, else India overview */
-  const checkoutMapCenter = useMemo(() => {
-    if (
-      deliveryCoords &&
-      Number.isFinite(deliveryCoords.latitude) &&
-      Number.isFinite(deliveryCoords.longitude)
-    ) {
-      return { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude };
-    }
-    if (browseCoords && Number.isFinite(browseCoords.latitude) && Number.isFinite(browseCoords.longitude)) {
-      return { lat: browseCoords.latitude, lng: browseCoords.longitude };
-    }
-    return { lat: 20.5937, lng: 78.9629 };
-  }, [deliveryCoords, browseCoords]);
-
   useEffect(() => {
     if (location.pathname === "/wallet" && location.hash === "#apply-coupons") {
       setCouponDrawerOpen(true);
@@ -1628,36 +1621,53 @@ export default function Customer() {
     setSavedAddresses((p) => [...p, { id, ...newAddress }]);
     setSelectedAddressId(id);
     setDeliveryAddress(newAddress.text);
-    setDeliveryCoords(null);
+    setExactCoords(null);
     setNewAddress({ label: "", text: "" });
   }
 
-  /** Rule 9 — live geolocation for delivery pin (fallback line if denied / unsupported). */
-  function fillDeliveryAddressFromGeolocation() {
+  /** Map-less checkout: device GPS + Google reverse geocode → full address + exact rider coords. */
+  async function fetchDeviceLocation() {
     setCheckoutGeoLoading(true);
-    const fallbackLine = "Lat: 26.54, Lng: 80.49 - Unnao Area";
-    const fallbackCoords = { latitude: 26.54, longitude: 80.49 };
-    const applyLine = (line, coords) => {
-      setDeliveryAddress(line);
-      setNewAddress((s) => ({ ...s, text: line }));
-      setSelectedAddressId("");
-      setDeliveryCoords(coords && Number.isFinite(coords.latitude) && Number.isFinite(coords.longitude) ? coords : null);
-      setCheckoutGeoLoading(false);
-    };
+    const finish = () => setCheckoutGeoLoading(false);
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      window.setTimeout(() => applyLine(fallbackLine, fallbackCoords), 500);
+      pushToast("Location is not available on this device.");
+      finish();
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        applyLine(`Lat: ${lat.toFixed(2)}, Lng: ${lng.toFixed(2)} - GPS delivery pin`, { latitude: lat, longitude: lng });
+        const coords = { lat, lng };
+        setExactCoords(coords);
+        setSelectedAddressId("");
+        const key = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "").trim();
+        let line = `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} — add details below`;
+        if (key) {
+          try {
+            const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(`${lat},${lng}`)}&key=${encodeURIComponent(key)}`;
+            const res = await fetch(url);
+            const data = await res.json().catch(() => ({}));
+            if (data.status === "OK" && Array.isArray(data.results) && data.results[0]?.formatted_address) {
+              line = String(data.results[0].formatted_address);
+            } else if (data.error_message) {
+              pushToast("Could not resolve address from GPS. You can edit the text below.");
+            }
+          } catch {
+            pushToast("Address lookup failed. Coordinates are still saved for delivery.");
+          }
+        } else {
+          pushToast("Add VITE_GOOGLE_MAPS_API_KEY for automatic address from GPS.");
+        }
+        setDeliveryAddress(line);
+        setNewAddress((s) => ({ ...s, text: line }));
+        finish();
       },
       () => {
-        applyLine(fallbackLine, fallbackCoords);
+        pushToast("Location permission denied or unavailable.");
+        finish();
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
   }
 
@@ -2908,78 +2918,26 @@ export default function Customer() {
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
                 <div className="grid gap-4">
-                  <div style={{ ...card, padding: 14 }}>
+                  <div className="relative z-0 overflow-visible" style={{ ...card, padding: 14 }}>
                     <h3 style={{ marginTop: 0 }}>Delivery address</h3>
                     <p style={{ color: "#64748b", marginTop: -4, fontSize: 13 }}>Pick or add one</p>
                     <button
                       type="button"
                       disabled={checkoutGeoLoading}
-                      onClick={fillDeliveryAddressFromGeolocation}
-                      style={{
-                        marginTop: 12,
-                        marginBottom: 4,
-                        width: "100%",
-                        maxWidth: "100%",
-                        padding: "14px 18px",
-                        fontWeight: 800,
-                        fontSize: 16,
-                        borderRadius: 14,
-                        border: "2px solid #0ea5e9",
-                        background: checkoutGeoLoading ? "#e0f2fe" : "linear-gradient(135deg,#e0f2fe 0%,#bae6fd 50%,#7dd3fc 100%)",
-                        color: "#0c4a6e",
-                        cursor: checkoutGeoLoading ? "wait" : "pointer",
-                        boxShadow: "0 6px 20px rgba(14,165,233,0.28)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                      }}
+                      onClick={fetchDeviceLocation}
+                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-4 mb-4 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
                     >
-                      {checkoutGeoLoading ? "Finding your location…" : "📍 Use Current Location"}
+                      <span aria-hidden>📍</span>
+                      {checkoutGeoLoading ? "Fetching location..." : "Use Current Location"}
                     </button>
-                    <div style={{ marginTop: 14 }}>
-                      <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-                        {deliveryCoords &&
-                        Number.isFinite(deliveryCoords.latitude) &&
-                        Number.isFinite(deliveryCoords.longitude)
-                          ? "Delivery pin on map"
-                          : "Map preview"}
+                    <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
+                      We use your GPS once to fill the full address. You can edit the text; exact coordinates stay on the order for the rider when you use this button.
+                    </p>
+                    {exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng) ? (
+                      <p style={{ margin: "0 0 12px", fontSize: 11, color: "#0369a1", fontWeight: 600 }}>
+                        Rider pin: {exactCoords.lat.toFixed(6)}, {exactCoords.lng.toFixed(6)} (unchanged if you edit address text)
                       </p>
-                      <p style={{ margin: "0 0 10px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
-                        {deliveryCoords &&
-                        Number.isFinite(deliveryCoords.latitude) &&
-                        Number.isFinite(deliveryCoords.longitude)
-                          ? "Pin shows where GPS placed you. Edit the address text if needed."
-                          : "Tap 📍 Use Current Location to center the map and drop your delivery pin."}
-                      </p>
-                      <LiveMap
-                        height={260}
-                        center={checkoutMapCenter}
-                        zoom={
-                          deliveryCoords &&
-                          Number.isFinite(deliveryCoords.latitude) &&
-                          Number.isFinite(deliveryCoords.longitude)
-                            ? 16
-                            : browseCoords
-                              ? 13
-                              : 5
-                        }
-                        markers={
-                          deliveryCoords &&
-                          Number.isFinite(deliveryCoords.latitude) &&
-                          Number.isFinite(deliveryCoords.longitude)
-                            ? [
-                                {
-                                  id: "delivery-pin",
-                                  variant: "home",
-                                  position: { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude },
-                                  title: "Delivery location",
-                                },
-                              ]
-                            : []
-                        }
-                      />
-                    </div>
+                    ) : null}
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {savedAddresses.map((a) => (
                         <div key={a.id} style={{ border: selectedAddressId === a.id ? "2px solid #10b981" : "1px solid #e2e8f0", borderRadius: 12, padding: 12 }}>
@@ -2990,7 +2948,7 @@ export default function Customer() {
                             onClick={() => {
                               setSelectedAddressId(a.id);
                               setDeliveryAddress(a.text);
-                              setDeliveryCoords(null);
+                              setExactCoords(null);
                             }}
                           >
                             DELIVER HERE
@@ -3005,8 +2963,9 @@ export default function Customer() {
                           placeholder="Full address"
                           value={newAddress.text}
                           onChange={(e) => {
-                            setNewAddress((s) => ({ ...s, text: e.target.value }));
-                            setDeliveryCoords(null);
+                            const v = e.target.value;
+                            setNewAddress((s) => ({ ...s, text: v }));
+                            if (!selectedAddressId) setDeliveryAddress(v);
                           }}
                           style={{ width: "100%", minHeight: 70, marginBottom: 8 }}
                         />
@@ -3099,7 +3058,6 @@ export default function Customer() {
                       !isCheckoutOutletAcceptingOrders || checkoutPayBusy ? { opacity: 0.45, cursor: "not-allowed" } : undefined
                     }
                     onClick={() => {
-                      setDeliveryAddress(selectedAddress?.text || deliveryAddress);
                       placeOrder();
                     }}
                   >
