@@ -2940,40 +2940,32 @@ export default function Customer() {
             </div>
 
             {!loggedInCustomer ? (
-              <div className="checkout-page-body px-[max(16px,4%)] pt-24">
+              <div className="checkout-page-body relative z-0 mt-[120px] px-[max(16px,4%)]">
                 <div style={{ ...card, padding: 24, textAlign: "center" }}>
                   Please login to continue checkout.
                 </div>
               </div>
             ) : !cart.length ? (
-              <div className="checkout-page-body px-[max(16px,4%)] pt-24">
+              <div className="checkout-page-body relative z-0 mt-[120px] px-[max(16px,4%)]">
                 <div style={{ ...card, padding: 24, textAlign: "center" }}>
                   Cart is empty. Add items to continue.
                 </div>
               </div>
             ) : (
-              <div className="max-w-7xl mx-auto w-full scroll-mt-28 px-[max(16px,4%)] pt-24 grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)]">
+              <div className="max-w-7xl mx-auto grid w-full scroll-mt-28 grid-cols-1 gap-6 px-[max(16px,4%)] md:grid-cols-[minmax(0,2fr)_minmax(260px,1fr)] relative z-0 mt-[120px]">
                 <div className="grid gap-4">
-                  <div className="relative z-0 overflow-visible" style={{ ...card, padding: 14 }}>
+                  <div style={{ ...card, padding: 14 }}>
                     <h3 style={{ marginTop: 0 }}>Delivery address</h3>
                     <p style={{ color: "#64748b", marginTop: -4, fontSize: 13 }}>Pick or add one</p>
                     <button
                       type="button"
                       disabled={checkoutGeoLoading}
                       onClick={fetchDeviceLocation}
-                      className="relative z-10 w-full bg-blue-50 text-blue-600 font-bold py-3 px-4 rounded-xl border border-blue-200 flex items-center justify-center gap-2 mt-2 mb-3 shadow-sm hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-wait disabled:hover:bg-blue-50"
+                      className="mt-3 mb-4 w-full rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 font-bold text-blue-600 shadow-sm flex items-center justify-center gap-2 hover:bg-blue-100 transition-all disabled:cursor-wait disabled:opacity-60 disabled:hover:bg-blue-50"
                     >
                       <span aria-hidden>📍</span>
                       {checkoutGeoLoading ? "Fetching location..." : "Use Current Location"}
                     </button>
-                    <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
-                      Tap once: we fill <strong>Label</strong> and <strong>Full address</strong> from your exact location (Google Geocoding). Edit if needed — GPS pin for the rider stays fixed.
-                    </p>
-                    {exactCoords && Number.isFinite(exactCoords.lat) && Number.isFinite(exactCoords.lng) ? (
-                      <p style={{ margin: "0 0 12px", fontSize: 11, color: "#0369a1", fontWeight: 600 }}>
-                        Rider pin: {exactCoords.lat.toFixed(6)}, {exactCoords.lng.toFixed(6)} (unchanged if you edit address text)
-                      </p>
-                    ) : null}
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {savedAddresses.map((a) => (
                         <div key={a.id} style={{ border: selectedAddressId === a.id ? "2px solid #10b981" : "1px solid #e2e8f0", borderRadius: 12, padding: 12 }}>
@@ -3019,7 +3011,7 @@ export default function Customer() {
                 </div>
 
                 <div
-                  className="md:sticky md:top-[172px] md:self-start md:z-[25]"
+                  className="md:sticky md:top-[240px] md:self-start md:z-[25]"
                   style={{ ...card, padding: 14, height: "fit-content" }}
                 >
                   <h3 style={{ marginTop: 0 }}>{activeRestName || "Order Summary"}</h3>
