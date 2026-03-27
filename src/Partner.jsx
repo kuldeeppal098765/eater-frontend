@@ -424,8 +424,6 @@ export default function Partner() {
   const [editingPhoto, setEditingPhoto] = useState(null);
   const fileInputRef = useRef(null);
   const menuPhotoRef = useRef(null);
-  /** Rule 4: looping KOT alarm while any order awaits accept/reject */
-  const alarmAudioRef = useRef(null);
 
   const [platformCoupons, setPlatformCoupons] = useState([]);
   const [partnerCouponsList, setPartnerCouponsList] = useState([]);
@@ -562,6 +560,7 @@ export default function Partner() {
       transports: ["websocket", "polling"],
     });
     socket.emit("join_partner_restaurant", { restaurantId: loggedInVendor.id });
+    socket.emit("joinRestaurantRoom", loggedInVendor.id);
     socket.on("menuItemImageGenerated", (payload) => {
       const itemId = payload?.itemId != null ? String(payload.itemId) : "";
       const newImageUrl = payload?.newImageUrl != null ? String(payload.newImageUrl) : "";
@@ -570,8 +569,26 @@ export default function Partner() {
         Array.isArray(prev) ? prev.map((d) => (d.id === itemId ? { ...d, photoUrl: newImageUrl } : d)) : prev,
       );
     });
+    socket.on("newOrderReceived", (incoming) => {
+      if (!incoming || incoming.id == null) return;
+      if (String(incoming.restaurantId || "") !== String(loggedInVendor.id)) return;
+      setOrders((prev) => {
+        if (!Array.isArray(prev)) return [incoming];
+        if (prev.some((o) => o.id === incoming.id)) return prev;
+        return [incoming, ...prev];
+      });
+      if (String(incoming.status || "").toUpperCase() === "PENDING") {
+        const el = document.getElementById("kot-alarm");
+        if (el) {
+          el.loop = true;
+          el.volume = 0.9;
+          el.play().catch(() => {});
+        }
+      }
+    });
     return () => {
       socket.off("menuItemImageGenerated");
+      socket.off("newOrderReceived");
       socket.disconnect();
     };
   }, [loggedInVendor?.id]);
@@ -923,23 +940,21 @@ export default function Partner() {
   const readyOrders = vendorOrders.filter((o) => o.status === "READY");
   const pickedOrders = vendorOrders.filter((o) => o.status === "OUT_FOR_DELIVERY");
 
+  /** Rule 4: loop alarm while any KOT row is still PENDING (socket or poll). */
   useEffect(() => {
     if (!auth.loggedIn || !loggedInVendor) {
-      if (alarmAudioRef.current) {
-        alarmAudioRef.current.pause();
-        alarmAudioRef.current.currentTime = 0;
+      const el = document.getElementById("kot-alarm");
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
       }
       return;
     }
-    if (!alarmAudioRef.current) {
-      alarmAudioRef.current = new Audio(
-        "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
-      );
-      alarmAudioRef.current.loop = true;
-      alarmAudioRef.current.volume = 0.9;
-    }
-    const audio = alarmAudioRef.current;
+    const audio = document.getElementById("kot-alarm");
+    if (!audio) return;
+    audio.loop = true;
     if (pendingNewOrderAlarm) {
+      audio.volume = 0.9;
       audio.play().catch(() => {});
     } else {
       audio.pause();
@@ -1097,15 +1112,27 @@ export default function Partner() {
     }
   }
 
+  function stopKotAlarm() {
+    const el = document.getElementById("kot-alarm");
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }
+
   async function updateOrderStatus(orderId, status) {
+    const up = String(status || "").toUpperCase();
+    if (up === "ACCEPTED" || up === "REJECTED") {
+      stopKotAlarm();
+    }
     try {
       await fetch(`${API_URL}/orders/update-status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, status }),
       });
-      fetchKitchenEligibleOrders();
-      fetchHistoryOrdersFull();
+      await fetchKitchenEligibleOrders();
+      await fetchHistoryOrdersFull();
     } catch {
       alert("Failed to update status.");
     }
@@ -1613,6 +1640,7 @@ export default function Partner() {
 
   return (
     <div className="partner-dashboard-root" style={{ background: "#f8fafc" }}>
+      <audio id="kot-alarm" src="/alarm.mp3" loop preload="auto" style={{ display: "none" }} aria-hidden="true" />
       <aside className="partner-dashboard-aside" style={{ background: "#fff", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: 18, borderBottom: "1px solid #e2e8f0" }}>
           <h2 style={{ margin: 0 }}>Partner Console</h2>
@@ -1982,7 +2010,20 @@ export default function Partner() {
                           +5 min arrival
                         </button>
                       ) : null}
-                      {order.status === "PENDING" ? <button onClick={() => updateOrderStatus(order.id, "ACCEPTED")}>Accept</button> : null}
+                      {order.status === "PENDING" ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "end" }}>
+                          <button type="button" onClick={() => updateOrderStatus(order.id, "ACCEPTED")}>
+                            ACCEPT
+                          </button>
+                          <button
+                            type="button"
+                            style={{ background: "#fef2f2", color: "#b91c1c", borderColor: "#fecaca" }}
+                            onClick={() => updateOrderStatus(order.id, "REJECTED")}
+                          >
+                            REJECT
+                          </button>
+                        </div>
+                      ) : null}
                       {order.status === "ACCEPTED" ? <button onClick={() => updateOrderStatus(order.id, "PREPARING")}>Mark Preparing</button> : null}
                       {order.status === "PREPARING" ? <button style={{ background: "#ef4444", color: "#fff", borderColor: "#ef4444" }} onClick={() => updateOrderStatus(order.id, "READY")}>Mark Ready</button> : null}
                       {order.status === "READY" ? (
