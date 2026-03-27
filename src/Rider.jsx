@@ -241,17 +241,51 @@ export default function Rider() {
   const [bankSaveBusy, setBankSaveBusy] = useState(false);
   const liveChatWidgetRef = useRef(null);
 
+  /** Device GPS while on duty (preferred over profile lat/lng for the bike pin). */
+  const [riderDeviceCoords, setRiderDeviceCoords] = useState(null);
+  /**
+   * Optional `DirectionsResult` per order id from your own flow (e.g. backend-computed polyline).
+   * Example: `setRiderDirectionsByOrderId((p) => ({ ...p, [orderId]: result }))` — LiveMap then skips internal DirectionsService for that card.
+   */
+  const [riderDirectionsByOrderId, setRiderDirectionsByOrderId] = useState({});
+
   const isApproved = loggedInRider?.approvalStatus === "APPROVED";
   const isRejected = loggedInRider?.approvalStatus === "REJECTED";
   const needsKycFlow = loggedInRider && !isApproved && !isRejected;
 
-  /** Last known GPS from backend (updated while on duty) — for LiveMap rider pin */
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return undefined;
+    if (!loggedInRider?.id || !isApproved || !onDuty) {
+      setRiderDeviceCoords(null);
+      return undefined;
+    }
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setRiderDeviceCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [loggedInRider?.id, isApproved, onDuty]);
+
+  /** Rider pin: live device position when on duty, else last profile coordinates from API */
   const riderMapPosition = useMemo(() => {
+    if (
+      riderDeviceCoords &&
+      Number.isFinite(riderDeviceCoords.lat) &&
+      Number.isFinite(riderDeviceCoords.lng)
+    ) {
+      return riderDeviceCoords;
+    }
     const lat = loggedInRider?.latitude;
     const lng = loggedInRider?.longitude;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     return { lat, lng };
-  }, [loggedInRider?.latitude, loggedInRider?.longitude]);
+  }, [riderDeviceCoords, loggedInRider?.latitude, loggedInRider?.longitude]);
 
   const refreshRiderProfile = useCallback(async () => {
     if (!loggedInRider?.phone) return;
@@ -1078,6 +1112,7 @@ export default function Rider() {
                           height={280}
                           center={riderMapPosition || undefined}
                           zoom={12}
+                          autoFitBounds
                           markers={[
                             ...(riderMapPosition
                               ? [
@@ -1085,7 +1120,7 @@ export default function Rider() {
                                     id: `rider-${order.id}`,
                                     variant: "rider",
                                     position: riderMapPosition,
-                                    title: "You",
+                                    title: "You (bike)",
                                   },
                                 ]
                               : []),
@@ -1099,7 +1134,7 @@ export default function Rider() {
                               id: `drop-${order.id}`,
                               variant: "home",
                               address: String(order.deliveryAddress || "").trim(),
-                              title: "Customer",
+                              title: "Customer (home)",
                             },
                           ].filter((m) => m.position || (m.address && m.address.length > 0))}
                           directions={
@@ -1111,6 +1146,7 @@ export default function Rider() {
                                 }
                               : null
                           }
+                          directionsResult={riderDirectionsByOrderId[order.id]}
                           suppressRouteMarkers
                         />
                         <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, marginTop: 10 }}>
@@ -1164,6 +1200,7 @@ export default function Rider() {
                           height={220}
                           center={riderMapPosition || undefined}
                           zoom={13}
+                          autoFitBounds
                           markers={[
                             ...(riderMapPosition
                               ? [
@@ -1171,7 +1208,7 @@ export default function Rider() {
                                     id: `rider-pu-${order.id}`,
                                     variant: "rider",
                                     position: riderMapPosition,
-                                    title: "You",
+                                    title: "You (bike)",
                                   },
                                 ]
                               : []),
@@ -1234,6 +1271,7 @@ export default function Rider() {
                         height={240}
                         center={riderMapPosition || undefined}
                         zoom={11}
+                        autoFitBounds
                         markers={[
                           ...(riderMapPosition
                             ? [
@@ -1241,7 +1279,7 @@ export default function Rider() {
                                   id: `rider-req-${order.id}`,
                                   variant: "rider",
                                   position: riderMapPosition,
-                                  title: "You",
+                                  title: "You (bike)",
                                 },
                               ]
                             : []),
@@ -1255,7 +1293,7 @@ export default function Rider() {
                             id: `drop-req-${order.id}`,
                             variant: "home",
                             address: String(order.deliveryAddress || "").trim(),
-                            title: "Drop",
+                            title: "Customer (home)",
                           },
                         ].filter((m) => m.position || (m.address && m.address.length > 0))}
                         directions={
@@ -1267,6 +1305,7 @@ export default function Rider() {
                               }
                             : null
                         }
+                        directionsResult={riderDirectionsByOrderId[order.id]}
                         suppressRouteMarkers
                       />
                       <button type="button" className="checkout-btn" style={{ marginTop: 0, background: "#0f172a" }} onClick={() => acceptOrder(order.id, order.status)}>

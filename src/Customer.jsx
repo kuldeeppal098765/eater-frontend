@@ -3,6 +3,7 @@ import { Link, Route, Routes, useLocation, useNavigate, useSearchParams } from "
 import "./App.css";
 
 import { API_URL, APP_BRAND } from "./apiConfig";
+import { fetchWithRetry, describeFetchFailure } from "./fetchRetry.js";
 import LiveMap from "./components/Shared/LiveMap.jsx";
 import { initiatePaytmAndOpenCheckout } from "./paytmCheckout";
 import { LS, loadPersistedCustomerCart, localGetMigrated, localRemove, localSet, persistCustomerCart } from "./frestoStorage";
@@ -643,7 +644,7 @@ export default function Customer() {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [fetchState, setFetchState] = useState("idle");
+  const [fetchState, setFetchState] = useState("loading");
   const [fetchMsg, setFetchMsg] = useState("");
   /** From GET /api/restaurants meta — all approved active outlets platform-wide (not filtered by city/search). */
   const [platformOutletOnlineCount, setPlatformOutletOnlineCount] = useState(null);
@@ -737,9 +738,9 @@ export default function Customer() {
     setFetchMsg("");
     try {
       const [rRes, oRes, cRes] = await Promise.allSettled([
-        fetch(`${API_URL}/restaurants`),
-        fetch(`${API_URL}/orders`),
-        fetch(`${API_URL}/coupons/active`),
+        fetchWithRetry(`${API_URL}/restaurants`),
+        fetchWithRetry(`${API_URL}/orders`),
+        fetchWithRetry(`${API_URL}/coupons/active`),
       ]);
 
       let restaurantsFailed = false;
@@ -767,13 +768,23 @@ export default function Customer() {
       }
       if (restaurantsFailed) {
         setFetchState("error");
-        setFetchMsg("We couldn’t load restaurants. Check your connection and refresh.");
+        if (rRes.status === "rejected") {
+          setFetchMsg(
+            `${describeFetchFailure(rRes.reason)} Use Retry below or confirm the API is reachable.`,
+          );
+        } else if (rRes.status === "fulfilled" && !rRes.value.ok) {
+          setFetchMsg(
+            `Couldn’t load restaurants (HTTP ${rRes.value.status}). Try Retry or check the server.`,
+          );
+        } else {
+          setFetchMsg("We couldn’t load restaurants. Check your connection and use Retry.");
+        }
         return;
       }
       setFetchState("ready");
-    } catch {
+    } catch (e) {
       setFetchState("error");
-      setFetchMsg("We couldn’t load restaurants. Check your connection and refresh.");
+      setFetchMsg(`${describeFetchFailure(e)} Use Retry below.`);
     }
   }
 
@@ -1576,6 +1587,21 @@ export default function Customer() {
 
   const isCheckoutOutletAcceptingOrders = Boolean(checkoutServingRestaurant?.isOutletOnline);
 
+  /** Checkout map: delivery pin when set, else browse location, else India overview */
+  const checkoutMapCenter = useMemo(() => {
+    if (
+      deliveryCoords &&
+      Number.isFinite(deliveryCoords.latitude) &&
+      Number.isFinite(deliveryCoords.longitude)
+    ) {
+      return { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude };
+    }
+    if (browseCoords && Number.isFinite(browseCoords.latitude) && Number.isFinite(browseCoords.longitude)) {
+      return { lat: browseCoords.latitude, lng: browseCoords.longitude };
+    }
+    return { lat: 20.5937, lng: 78.9629 };
+  }, [deliveryCoords, browseCoords]);
+
   useEffect(() => {
     if (location.pathname === "/wallet" && location.hash === "#apply-coupons") {
       setCouponDrawerOpen(true);
@@ -2091,8 +2117,27 @@ export default function Customer() {
               </div>
 
               <div className="main-content" style={{ paddingTop: 0 }}>
-                {fetchState !== "ready" ? (
+                {fetchState === "loading" ? (
                   <div style={{ textAlign: "center", padding: "40px 0", color: "#64748b" }}>Loading restaurants…</div>
+                ) : fetchState === "error" ? (
+                  <div style={{ textAlign: "center", padding: "48px 16px", maxWidth: 420, margin: "0 auto" }}>
+                    <p style={{ color: "#b91c1c", marginBottom: 16, lineHeight: 1.45 }}>{fetchMsg}</p>
+                    <button
+                      type="button"
+                      onClick={() => bootstrapData()}
+                      style={{
+                        border: "none",
+                        background: "#e23744",
+                        color: "#fff",
+                        padding: "10px 20px",
+                        borderRadius: 10,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Retry
+                    </button>
+                  </div>
                 ) : fetchState === "ready" && !realRestaurants.length ? (
                   <div style={{ textAlign: "center", padding: "48px 16px" }}>
                     <h3 style={{ color: "#64748b", marginBottom: 8 }}>No restaurants available right now.</h3>
@@ -2890,28 +2935,51 @@ export default function Customer() {
                         gap: 10,
                       }}
                     >
-                      {checkoutGeoLoading ? "Finding your location…" : "📍 Use current location"}
+                      {checkoutGeoLoading ? "Finding your location…" : "📍 Use Current Location"}
                     </button>
-                    {deliveryCoords &&
-                    Number.isFinite(deliveryCoords.latitude) &&
-                    Number.isFinite(deliveryCoords.longitude) ? (
-                      <div style={{ marginTop: 14 }}>
-                        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Delivery pin on map</p>
-                        <LiveMap
-                          height={260}
-                          center={{ lat: deliveryCoords.latitude, lng: deliveryCoords.longitude }}
-                          zoom={16}
-                          markers={[
-                            {
-                              id: "delivery-pin",
-                              variant: "home",
-                              position: { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude },
-                              title: "Delivery location",
-                            },
-                          ]}
-                        />
-                      </div>
-                    ) : null}
+                    <div style={{ marginTop: 14 }}>
+                      <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                        {deliveryCoords &&
+                        Number.isFinite(deliveryCoords.latitude) &&
+                        Number.isFinite(deliveryCoords.longitude)
+                          ? "Delivery pin on map"
+                          : "Map preview"}
+                      </p>
+                      <p style={{ margin: "0 0 10px", fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
+                        {deliveryCoords &&
+                        Number.isFinite(deliveryCoords.latitude) &&
+                        Number.isFinite(deliveryCoords.longitude)
+                          ? "Pin shows where GPS placed you. Edit the address text if needed."
+                          : "Tap 📍 Use Current Location to center the map and drop your delivery pin."}
+                      </p>
+                      <LiveMap
+                        height={260}
+                        center={checkoutMapCenter}
+                        zoom={
+                          deliveryCoords &&
+                          Number.isFinite(deliveryCoords.latitude) &&
+                          Number.isFinite(deliveryCoords.longitude)
+                            ? 16
+                            : browseCoords
+                              ? 13
+                              : 5
+                        }
+                        markers={
+                          deliveryCoords &&
+                          Number.isFinite(deliveryCoords.latitude) &&
+                          Number.isFinite(deliveryCoords.longitude)
+                            ? [
+                                {
+                                  id: "delivery-pin",
+                                  variant: "home",
+                                  position: { lat: deliveryCoords.latitude, lng: deliveryCoords.longitude },
+                                  title: "Delivery location",
+                                },
+                              ]
+                            : []
+                        }
+                      />
+                    </div>
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {savedAddresses.map((a) => (
                         <div key={a.id} style={{ border: selectedAddressId === a.id ? "2px solid #10b981" : "1px solid #e2e8f0", borderRadius: 12, padding: 12 }}>

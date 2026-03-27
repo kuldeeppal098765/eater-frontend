@@ -21,6 +21,7 @@ export default function InstallBanner() {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     const onBeforeInstall = (e) => {
+      // Hides Chrome’s mini-infobar; INSTALL must call prompt() (user gesture). Chrome may log until then.
       e.preventDefault();
       setDeferredPrompt(e);
       setVisible(true);

@@ -37,14 +37,15 @@ function svgIconDataUrl(variant) {
  */
 
 /**
- * Shared Google Map (Maps JavaScript API).
+ * Shared Google Map (Maps JavaScript API). Key: `import.meta.env.VITE_GOOGLE_MAPS_API_KEY`.
  *
- * @param {{ lat: number, lng: number }} [center] — controlled center; map pans when this changes
+ * @param {{ lat: number, lng: number }} [center] — map pans when this changes (skipped when `autoFitBounds` is true)
  * @param {number} [zoom]
  * @param {LiveMapMarker[]} [markers]
- * @param {{ origin: google.maps.LatLngLiteral|string, destination: google.maps.LatLngLiteral|string, travelMode?: keyof typeof google.maps.TravelMode }} [directions] — runs DirectionsService when both ends set
- * @param {google.maps.DirectionsResult|null} [directionsResult] — optional precomputed Directions response (skips internal request)
+ * @param {{ origin: google.maps.LatLngLiteral|string, destination: google.maps.LatLngLiteral|string, travelMode?: keyof typeof google.maps.TravelMode }} [directions] — runs DirectionsService when both ends set (stable string key avoids duplicate requests)
+ * @param {google.maps.DirectionsResult|null} [directionsResult] — precomputed Directions response (e.g. from backend); skips internal DirectionsService
  * @param {boolean} [suppressRouteMarkers] — hide A/B pins from DirectionsRenderer (use custom markers)
+ * @param {boolean} [autoFitBounds] — fit map to resolved markers + route bounds (good for rider multi-stop views)
  * @param {number|string} [height]
  * @param {string} [className]
  * @param {(map: google.maps.Map) => void} [onMapReady]
@@ -56,6 +57,7 @@ export default function LiveMap({
   directions = null,
   directionsResult = null,
   suppressRouteMarkers = true,
+  autoFitBounds = false,
   height = 280,
   className = "",
   onMapReady,
@@ -66,8 +68,21 @@ export default function LiveMap({
   /** Route polyline from internal DirectionsService or optional parent-provided result */
   const [routeDirections, setRouteDirections] = useState(null);
 
+  const directionsKey = useMemo(() => {
+    if (!directions?.origin || !directions?.destination) return null;
+    const o =
+      typeof directions.origin === "string"
+        ? directions.origin
+        : `${directions.origin.lat},${directions.origin.lng}`;
+    const d =
+      typeof directions.destination === "string"
+        ? directions.destination
+        : `${directions.destination.lat},${directions.destination.lng}`;
+    return `${o}|${d}|${directions.travelMode || "DRIVING"}`;
+  }, [directions]);
+
   const { isLoaded, loadError } = useJsApiLoader({
-    id: "vyaharam-google-maps",
+    id: "fresto-google-maps",
     googleMapsApiKey: apiKey,
     libraries: MAP_LIBRARIES,
   });
@@ -124,14 +139,14 @@ export default function LiveMap({
     };
   }, [isLoaded, markers]);
 
-  /** Internal DirectionsService — or use `directionsResult` from parent when you compute routes yourself */
+  /** Internal DirectionsService — or use `directionsResult` from parent (server / custom client flow). */
   useEffect(() => {
     if (!isLoaded || !window.google?.maps?.DirectionsService) return;
-    if (directionsResult) {
+    if (directionsResult != null) {
       setRouteDirections(directionsResult);
       return;
     }
-    if (!directions?.origin || !directions?.destination) {
+    if (!directionsKey || !directions?.origin || !directions?.destination) {
       setRouteDirections(null);
       return;
     }
@@ -157,7 +172,7 @@ export default function LiveMap({
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, directions, directionsResult]);
+  }, [isLoaded, directionsKey, directions, directionsResult]);
 
   const effectiveDirections = directionsResult || routeDirections;
 
@@ -171,11 +186,34 @@ export default function LiveMap({
     return DEFAULT_CENTER;
   }, [center, resolvedMarkers]);
 
-  /** Smooth pan when `center` prop updates (e.g. geolocation) */
+  /** Smooth pan when `center` prop updates (e.g. geolocation); skipped when fitting bounds for multi-marker views */
   useEffect(() => {
+    if (autoFitBounds) return;
     if (!mapRef.current || !center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng)) return;
     mapRef.current.panTo({ lat: center.lat, lng: center.lng });
-  }, [center?.lat, center?.lng]);
+  }, [autoFitBounds, center?.lat, center?.lng]);
+
+  /** Fit camera to markers + route (rider delivery / request cards) */
+  useEffect(() => {
+    if (!autoFitBounds || !mapRef.current || !isLoaded || !window.google?.maps) return;
+    const map = mapRef.current;
+    const bounds = new window.google.maps.LatLngBounds();
+    let extended = false;
+    for (const m of resolvedMarkers) {
+      if (m.position && Number.isFinite(m.position.lat) && Number.isFinite(m.position.lng)) {
+        bounds.extend(m.position);
+        extended = true;
+      }
+    }
+    const routeBounds = effectiveDirections?.routes?.[0]?.bounds;
+    if (routeBounds) {
+      bounds.union(routeBounds);
+      extended = true;
+    }
+    if (extended) {
+      map.fitBounds(bounds, 56);
+    }
+  }, [autoFitBounds, isLoaded, resolvedMarkers, effectiveDirections]);
 
   const onLoad = useCallback(
     (map) => {
@@ -217,7 +255,7 @@ export default function LiveMap({
         className={`flex min-h-[200px] items-center justify-center rounded-xl border border-slate-200 bg-white p-6 text-slate-600 ${className}`}
         style={mapContainerStyle}
       >
-        <span className="text-sm font-medium">Loading map…</span>
+        <span className="text-sm font-medium">Loading Map…</span>
       </div>
     );
   }
